@@ -42,6 +42,29 @@ def year_country_filter(bot_year, top_year,country_list):
             '$and': [{'YEAR': {'$gte': bot_year}}, {'YEAR': {'$lte': top_year}},{'ISO_COUNTRY_CODE': {'$in': country_list}}]
         }}
     return filter_
+#in order to avoid repeating the logic to correct the CPV codes to all of the following queries, we do it in the function below:
+def correct_CPV_codes():
+    eu.update_many(
+        {'CPV': {'$exists': True}},
+        [
+            {"$set": {"CPV": {'$toString': "$CPV"}}}
+        ]
+    )
+    eu.update_many(
+        {"CPV": {"$exists": True},
+         "$expr": {"$lt": [{"$strLenCP": "$CPV"}, 8]}},
+        [
+            {'$set': {'CPV': {'$concat': ["0", "$CPV"]}}}
+        ]
+    )
+
+#this was commented as it only needs to be run once to update the db
+#correct_CPV_codes()
+#check if it worked
+# list(eu.find({
+#     "CPV": { "$exists": True },
+#     "$expr": { "$lt": [ { "$strLenCP": "$CPV" }, 8 ] }},{'CPV':1}
+# ).limit(5))
 
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -59,32 +82,68 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     avg_cpv_euro_avg_n_eu = average value of each CPV's division contracts average 'VALUE_EURO' with out 'B_EU_FUNDS' (int)
     """
 
-    average={'$group':{
-                '_id':{
-                    'CPV' : {'$substr':['$CPV',0,2]}
-                        # [{
-                # '$concat':["0000",{'$substr': ['$CPV',0,8] }]
-                #     },
-                #     {'$max': [{
-                #             '$subtract': [{'$strLenCP': {
-                #                 '$concat': ["0000",{'$substr': ['$CPV',0,8]}]
-                #                 }}, 8]},0]}, 2]}
+    average_value_cpv = {'$group': {
+                '_id': {
+                    'CPV': {'$substr': ['$CPV', 0, 2]}
                 },
-                'avg_CPV': {'$avg':'$VALUE_EURO'}
+                'avg_val_CPV': {'$avg':'$VALUE_EURO'}
                     }
             }
-    avg_avg_q={'$group':{
-                    '_id':None,
-                    'avg_avg':{'$avg':'$avg_CPV'}}}
-    pipeline_avg=[year_country_filter(bot_year, top_year,country_list),average,avg_avg_q]
 
-    avg_cpv_euro_avg = int(list(eu.aggregate(pipeline_avg))[0]['avg_avg'])
-    avg_cpv_count = 50
-    avg_cpv_offer_avg = 55
-    avg_cpv_euro_avg_y_eu = 30
-    avg_cpv_euro_avg_n_eu = 35
+    count_cpv = {'$group': {
+                '_id': {
+                    'CPV': {'$substr': ['$CPV', 0, 2]}
+                },
+                'count_CPV': {'$sum': 1}
+                    }
+            }
+
+    average_offer_cpv = {'$group': {
+                '_id': {
+                    'CPV': {'$substr': ['$CPV', 0, 2]}
+                },
+                'avg_offer_CPV': {'$avg':'$NUMBER_OFFERS'}
+                    }
+            }
+
+    eu_filter ={'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
+    average_value_eu_cpv = {'$group': {
+        '_id': {
+            'CPV': {'$substr': ['$CPV', 0, 2]}
+        },
+        'avg_val_eu_CPV': {'$avg': '$VALUE_EURO'}
+    }
+    }
+    noeu_filter ={'$match': {"B_EU_FUNDS": {"$eq": "N"}}}
+    average_value_noeu_cpv = {'$group': {
+        '_id': {
+            'CPV': {'$substr': ['$CPV', 0, 2]}
+        },
+        'avg_val_noeu_CPV': {'$avg': '$VALUE_EURO'}
+    }
+    }
+
+    def average_average(to_average):
+        avg_avg_q = {'$group': {
+                    '_id':None,
+                    'avg_avg': {'$avg': to_average}}}
+        return avg_avg_q
+
+    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list), average_value_cpv, average_average('$avg_val_CPV')]
+    pipeline_count = [year_country_filter(bot_year, top_year, country_list), count_cpv, average_average('$count_CPV')]
+    pipeline_offer_avg = [year_country_filter(bot_year, top_year, country_list), average_offer_cpv, average_average('$avg_offer_CPV')]
+    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter, average_value_eu_cpv, average_average('$avg_val_eu_CPV')]
+    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),noeu_filter, average_value_noeu_cpv, average_average('$avg_val_noeu_CPV')]
+
+
+    avg_cpv_euro_avg = int(list(eu.aggregate(pipeline_val_avg))[0]['avg_avg'])
+    avg_cpv_count = int(list(eu.aggregate(pipeline_count))[0]['avg_avg'])
+    avg_cpv_offer_avg = int(list(eu.aggregate(pipeline_offer_avg))[0]['avg_avg'])
+    avg_cpv_euro_avg_y_eu = int(list(eu.aggregate(pipeline_val_eu_avg))[0]['avg_avg'])
+    avg_cpv_euro_avg_n_eu = int(list(eu.aggregate(pipeline_val_noeu_avg))[0]['avg_avg'])
 
     return avg_cpv_euro_avg, avg_cpv_count, avg_cpv_offer_avg, avg_cpv_euro_avg_y_eu, avg_cpv_euro_avg_n_eu
+ex1_cpv_box()
 
 
 def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
