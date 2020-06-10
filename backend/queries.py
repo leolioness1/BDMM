@@ -1,12 +1,13 @@
 import pandas as pd
 from pymongo import MongoClient
-from backend.DB import eu
-from backend.DB import db
+from DB import eu
+from DB import db
 
 ########################################################################################################################
 countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'UK', 'SI', 'LT',
              'ES', 'FR', 'IE', 'SE', 'NL', 'PT', 'PL', 'DK', 'MK', 'DE', 'IT',
              'BG', 'CY', 'AT', 'LU', 'BE', 'FI', 'EE', 'SK', 'MT', 'LI', 'IS']
+
 
 
 def ex0_cpv_example(bot_year=2008, top_year=2020):
@@ -447,10 +448,23 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = Country ('ISO_COUNTRY_CODE') name, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
+    query = {
+        '$group': {
+            '_id': {'country' : '$ISO_COUNTRY_CODE'}, # Ther group's id field is/are the keys that we want to group the data by
+            'average_q12' : {'$avg' : '$VALUE_EURO'}            # A new key called 'count' that for each unique 'initial_letter' sums 1 to that particular value
+        }
+    }
+    query_2 = {
+        '$sort': {
+            'average_q12': -1
+        }
+    }
+    query_3 = {
+        '$limit': 5
+        }
+    pipeline = [year_country_filter(bot_year, top_year,country_list),query,query_2,query_3]
 
-    pipeline = []
-
-    list_documents = []
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -468,12 +482,26 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = Country ('ISO_COUNTRY_CODE') name, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
+    query = {
+        '$group': {
+            '_id': {'country' : '$ISO_COUNTRY_CODE'}, # Ther group's id field is/are the keys that we want to group the data by
+            'average_q13' : {'$avg' : '$VALUE_EURO'}            # A new key called 'count' that for each unique 'initial_letter' sums 1 to that particular value
+        }
+    }
+    query_2 = {
+        '$sort': {
+            'average_q13': 1
+        }
+    }
+    query_3 = {
+        '$limit': 5
+        }
+    pipeline = [year_country_filter(bot_year, top_year,country_list),query,query_2,query_3]
 
-    pipeline = []
-
-    list_documents = []
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
+
 
 
 def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
@@ -490,9 +518,20 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = country in ISO-A2 format (string) (located in iso_codes collection)
     """
 
-    pipeline = []
+    query_2 = {
+        '$group': {
+            '_id': {'country' : '$ISO_COUNTRY_CODE'},
+            """# Ther group's id field is/are the keys that we want to group the data by
+            'sum_q14value' : {'$sum' : '$VALUE_EURO'},
+            'sum_q14funds' : {'$sum' : '$B_EU_FUNDS'},
+            """
+            'final_sum' : {'$add':['$sum' : '$VALUE_EURO','$sum' : '$B_EU_FUNDS']}
+            }
+        }
+    
+    pipeline = [year_country_filter(bot_year, top_year,country_list),query_2]
 
-    list_documents = []
+    list_documents = [eu.aggregate(pipeline)]
 
     return list_documents
 
