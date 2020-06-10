@@ -9,7 +9,7 @@ countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'UK', 'SI', 'LT',
              'BG', 'CY', 'AT', 'LU', 'BE', 'FI', 'EE', 'SK', 'MT', 'LI', 'IS']
 
 
-
+#gdjsjysyhhfjmhgjhj
 def ex0_cpv_example(bot_year=2008, top_year=2020):
     """
     Returns all contracts in given year 'YEAR' range and cap to 100000000 the 'VALUE_EURO'
