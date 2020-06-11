@@ -1,15 +1,13 @@
 import pandas as pd
 from pymongo import MongoClient
-from DB import eu
-from DB import db
+from backend.DB import eu
+from backend.DB import db
 
 ########################################################################################################################
 countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'UK', 'SI', 'LT',
              'ES', 'FR', 'IE', 'SE', 'NL', 'PT', 'PL', 'DK', 'MK', 'DE', 'IT',
              'BG', 'CY', 'AT', 'LU', 'BE', 'FI', 'EE', 'SK', 'MT', 'LI', 'IS']
 
-
-#gdjsjysyhhfjmhgjhj
 def ex0_cpv_example(bot_year=2008, top_year=2020):
     """
     Returns all contracts in given year 'YEAR' range and cap to 100000000 the 'VALUE_EURO'
@@ -158,14 +156,35 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = CPV Division description, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = contract count of each CPV Division, (int)
     """
-    
 
-    pipeline = [year_country_filter(bot_year, top_year,country_list),]
+    count_cpv = {'$group': {
+        '_id': {
+            'CPV': {'$substr': ['$CPV', 0, 2]},
+        },
+        'count_CPV': {'$sum': 1}
+    }
+    }
 
-    list_documents = []
+    join_cpv_description = {'$lookup': {
+        'from': 'cpv',
+        'localField': 'id',
+        'foreignField': 'cpv_id',
+        'as': 'cpvs'
+    }
+    }
+
+    merge_cpv = {"$merge": {
+        'into': 'contracts',
+        'whenMatched': 'keepExisting'
+    }
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), count_cpv, join_cpv_description, merge_cpv]
+
+    list_documents = [list(eu.aggregate(pipeline))]
 
     return list_documents
-
+ex2_cpv_treemap()
 
 def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -448,23 +467,10 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = Country ('ISO_COUNTRY_CODE') name, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
-    query = {
-        '$group': {
-            '_id': {'country' : '$ISO_COUNTRY_CODE'}, # Ther group's id field is/are the keys that we want to group the data by
-            'average_q12' : {'$avg' : '$VALUE_EURO'}            # A new key called 'count' that for each unique 'initial_letter' sums 1 to that particular value
-        }
-    }
-    query_2 = {
-        '$sort': {
-            'average_q12': -1
-        }
-    }
-    query_3 = {
-        '$limit': 5
-        }
-    pipeline = [year_country_filter(bot_year, top_year,country_list),query,query_2,query_3]
 
-    list_documents = list(eu.aggregate(pipeline))
+    pipeline = []
+
+    list_documents = []
 
     return list_documents
 
@@ -482,23 +488,10 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = Country ('ISO_COUNTRY_CODE') name, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
-    query = {
-        '$group': {
-            '_id': {'country' : '$ISO_COUNTRY_CODE'}, # Ther group's id field is/are the keys that we want to group the data by
-            'average_q13' : {'$avg' : '$VALUE_EURO'}            # A new key called 'count' that for each unique 'initial_letter' sums 1 to that particular value
-        }
-    }
-    query_2 = {
-        '$sort': {
-            'average_q13': 1
-        }
-    }
-    query_3 = {
-        '$limit': 5
-        }
-    pipeline = [year_country_filter(bot_year, top_year,country_list),query,query_2,query_3]
 
-    list_documents = list(eu.aggregate(pipeline))
+    pipeline = []
+
+    list_documents = []
 
     return list_documents
 
@@ -517,21 +510,10 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = sum 'VALUE_EURO' of country ('ISO_COUNTRY_CODE') name, (float)
     value_2 = country in ISO-A2 format (string) (located in iso_codes collection)
     """
-
-    query_2 = {
-        '$group': {
-            '_id': {'country' : '$ISO_COUNTRY_CODE'},
-            """# Ther group's id field is/are the keys that we want to group the data by
-            'sum_q14value' : {'$sum' : '$VALUE_EURO'},
-            'sum_q14funds' : {'$sum' : '$B_EU_FUNDS'},
-            """
-            'final_sum' : {'$add':['$sum' : '$VALUE_EURO','$sum' : '$B_EU_FUNDS']}
-            }
-        }
     
-    pipeline = [year_country_filter(bot_year, top_year,country_list),query_2]
+    pipeline = []
 
-    list_documents = [eu.aggregate(pipeline)]
+    list_documents = []
 
     return list_documents
 
