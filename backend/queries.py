@@ -187,9 +187,7 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),count_cpv, join_cpv_description,cpv_projection,cpv_desc_proj]
-
-    list_documents = list(eu.aggregate(pipeline))
+    list_documents = []
 
     return list_documents
 
@@ -440,6 +438,7 @@ def ex10_country_box(bot_year=2008, top_year=2020, country_list=countries):
     avg_country_euro_avg_n_eu = int(list(eu.aggregate(pipeline_val_noeu_avg))[0]['avg_avg'])
 
     return avg_country_euro_avg, avg_country_count, avg_country_offer_avg, avg_country_euro_avg_y_eu, avg_country_euro_avg_n_eu
+
 
 
 def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
