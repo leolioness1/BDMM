@@ -630,9 +630,10 @@ def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
         '$project': {
             '_id': False,
             'cpv': '$name_col.name',
-            'count': '$count'
+            'avg': '$average'
         }
     }
+
 
     pipeline = [year_country_filter(bot_year, top_year, country_list), count_country, join_country_name, country_projection, country_name_proj]
 
@@ -655,9 +656,45 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
 
-    pipeline = []
+    average_country = {'$group': {'_id': {'country': '$ISO_COUNTRY_CODE'},
+                                'average_val': {'$avg': '$VALUE_EURO'}
+                                }
+                     }
 
-    list_documents = []
+    join_country_name = {'$lookup': {
+        'from': 'iso_codes',
+        'localField': '_id.country',
+        'foreignField': 'alpha-2',
+        'as': 'name_col'
+    }}
+
+    country_projection = {
+        '$project': {
+            '_id': False,
+            'name_col': {'$arrayElemAt': ['$name_col', 0]},
+            'average': '$average_val'
+        }
+    }
+
+    country_name_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$name_col.name',
+            'avg': '$average'
+        }
+    }
+    country_sort = {
+        '$sort': {
+            'avg': pymongo.DESCENDING
+        }
+    }
+    country_limit = {
+        '$limit': 5
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), average_country, join_country_name,country_projection, country_name_proj, country_sort, country_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -676,9 +713,45 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
 
-    pipeline = []
+    average_country = {'$group': {'_id': {'country': '$ISO_COUNTRY_CODE'},
+                                'average_val': {'$avg': '$VALUE_EURO'}
+                                }
+                     }
 
-    list_documents = []
+    join_country_name = {'$lookup': {
+        'from': 'iso_codes',
+        'localField': '_id.country',
+        'foreignField': 'alpha-2',
+        'as': 'name_col'
+    }}
+
+    country_projection = {
+        '$project': {
+            '_id': False,
+            'name_col': {'$arrayElemAt': ['$name_col', 0]},
+            'average': '$average_val'
+        }
+    }
+
+    country_name_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$name_col.name',
+            'avg': '$average'
+        }
+    }
+    country_sort = {
+        '$sort': {
+            'avg': pymongo.ASCENDING
+        }
+    }
+    country_limit = {
+        '$limit': 5
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), average_country, join_country_name,country_projection, country_name_proj, country_sort, country_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -697,9 +770,9 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = country in ISO-A2 format (string) (located in iso_codes collection)
     """
 
-    pipeline = []
+    pipeline=[]
+    list_documents = list(eu.aggregate(pipeline))
 
-    list_documents = []
 
     return list_documents
 
