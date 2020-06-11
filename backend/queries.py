@@ -1,5 +1,6 @@
 import pandas as pd
 from pymongo import MongoClient
+import pymongo
 from backend.DB import eu
 from backend.DB import db
 
@@ -188,7 +189,7 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),count_cpv, join_cpv_description,cpv_projection,cpv_desc_proj]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj]
 
     list_documents = list(eu.aggregate(pipeline))
     return list_documents
@@ -206,9 +207,47 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = CPV Division description, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each CPV Division, (float)
     """
-    pipeline = []
+    count_cpv = {'$group': {
+        '_id': {
+            'cpv': {'$substr': ['$CPV', 0, 2]},
+        },
+        'average_val': {'$avg': '$VALUE_EURO'}
+    }
+    }
 
-    list_documents = []
+    join_cpv_description = {'$lookup': {
+        'from': 'cpv',
+        'localField': '_id.cpv',
+        'foreignField': 'cpv_division',
+        'as': 'CPV_col'
+    }}
+    cpv_projection = {
+        '$project': {
+            '_id': False,
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'average': '$average_val'
+        }
+    }
+
+    cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$CPV_col.cpv_division_description',
+            'avg': '$average'
+        }
+    }
+    cpv_sort = {
+        '$sort': {
+            'avg': pymongo.DESCENDING
+        }
+    }
+    cpv_limit = {
+        '$limit': 5
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -226,9 +265,48 @@ def ex4_cpv_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = average 'VALUE_EURO' of each CPV Division, (float)
     """
 
-    pipeline = []
+    count_cpv = {'$group': {
+        '_id': {
+            'cpv': {'$substr': ['$CPV', 0, 2]},
+        },
+        'average_val': {'$avg': '$VALUE_EURO'}
+    }
+    }
 
-    list_documents = []
+    join_cpv_description = {'$lookup': {
+        'from': 'cpv',
+        'localField': '_id.cpv',
+        'foreignField': 'cpv_division',
+        'as': 'CPV_col'
+    }}
+    cpv_projection = {
+        '$project': {
+            '_id': False,
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'average': '$average_val'
+        }
+    }
+
+    cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$CPV_col.cpv_division_description',
+            'avg': '$average'
+        }
+    }
+    cpv_sort = {
+        '$sort': {
+            'avg': pymongo.ASCENDING
+        }
+    }
+    cpv_limit = {
+        '$limit': 5
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), count_cpv, join_cpv_description, cpv_projection,
+                cpv_desc_proj, cpv_sort, cpv_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -245,10 +323,47 @@ def ex5_cpv_bar_3(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = CPV Division description, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each CPV Division, (float)
     """
+    eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
+    count_cpv = {'$group': {
+        '_id': {
+            'cpv': {'$substr': ['$CPV', 0, 2]},
+        },
+        'average_val': {'$avg': '$VALUE_EURO'}
+    }
+    }
+    join_cpv_description = {'$lookup': {
+        'from': 'cpv',
+        'localField': '_id.cpv',
+        'foreignField': 'cpv_division',
+        'as': 'CPV_col'
+    }}
+    cpv_projection = {
+        '$project': {
+            '_id': False,
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'average': '$average_val'
+        }
+    }
 
-    pipeline = []
+    cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$CPV_col.cpv_division_description',
+            'avg': '$average'
+        }
+    }
+    cpv_sort = {
+        '$sort': {
+            'avg': pymongo.DESCENDING
+        }
+    }
+    cpv_limit = {
+        '$limit': 5
+    }
 
-    list_documents = []
+    pipeline = [year_country_filter(bot_year, top_year, country_list),eu_filter, count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -265,11 +380,47 @@ def ex6_cpv_bar_4(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = CPV Division description, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each CPV Division, (float)
     """
+    noeu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "N"}}}
+    count_cpv = {'$group': {
+        '_id': {
+            'cpv': {'$substr': ['$CPV', 0, 2]},
+        },
+        'average_val': {'$avg': '$VALUE_EURO'}
+    }
+    }
+    join_cpv_description = {'$lookup': {
+        'from': 'cpv',
+        'localField': '_id.cpv',
+        'foreignField': 'cpv_division',
+        'as': 'CPV_col'
+    }}
+    cpv_projection = {
+        '$project': {
+            '_id': False,
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'average': '$average_val'
+        }
+    }
 
+    cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$CPV_col.cpv_division_description',
+            'avg': '$average'
+        }
+    }
+    cpv_sort = {
+        '$sort': {
+            'avg': pymongo.DESCENDING
+        }
+    }
+    cpv_limit = {
+        '$limit': 5
+    }
 
-    pipeline = []
+    pipeline = [year_country_filter(bot_year, top_year, country_list),noeu_filter, count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
 
-    list_documents = []
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -466,6 +617,7 @@ def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
         'foreignField': 'alpha-2',
         'as': 'name_col'
     }}
+
     country_projection = {
         '$project': {
             '_id': False,
@@ -482,9 +634,10 @@ def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),count_country, join_country_name,country_projection,country_name_proj]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), count_country, join_country_name, country_projection, country_name_proj]
 
     list_documents = list(eu.aggregate(pipeline))
+
     return list_documents
 
 
