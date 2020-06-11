@@ -157,13 +157,42 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = CPV Division description, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = contract count of each CPV Division, (int)
     """
-    
+    count_cpv = {'$group': {
+        '_id': {
+            'cpv': {'$substr': ['$CPV', 0, 2]},
+        },
+        'count_contracts': {'$sum': 1}
+    }
+    }
 
-    pipeline = [year_country_filter(bot_year, top_year,country_list),]
+    join_cpv_description ={'$lookup': {
+        'from': 'cpv',
+        'localField': '_id.cpv',
+        'foreignField': 'cpv_division',
+        'as': 'CPV_col'
+    }}
+    cpv_projection = {
+        '$project': {
+            '_id': False,
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'count': '$count_contracts'
+        }
+    }
 
-    list_documents = []
+    cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$CPV_col.cpv_division_description',
+            'count': '$count'
+        }
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list),count_cpv, join_cpv_description,cpv_projection,cpv_desc_proj]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
+
 
 
 def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
@@ -413,7 +442,6 @@ def ex10_country_box(bot_year=2008, top_year=2020, country_list=countries):
     return avg_country_euro_avg, avg_country_count, avg_country_offer_avg, avg_country_euro_avg_y_eu, avg_country_euro_avg_n_eu
 
 
-
 def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
     """
     Returns the count of contracts per country ('ISO_COUNTRY_CODE')
@@ -427,10 +455,36 @@ def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = contract count of each country, (int)
     """
 
-    pipeline = []
+    count_country = {'$group': {'_id': {'country': '$ISO_COUNTRY_CODE'},
+                    'count_contracts': {'$sum': 1}
+                    }
+                     }
 
-    list_documents = []
+    join_country_name ={'$lookup': {
+        'from': 'iso_codes',
+        'localField': '_id.country',
+        'foreignField': 'alpha-2',
+        'as': 'name_col'
+    }}
+    country_projection = {
+        '$project': {
+            '_id': False,
+            'name_col': {'$arrayElemAt': ['$name_col', 0]},
+            'count': '$count_contracts'
+        }
+    }
 
+    country_name_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$name_col.name',
+            'count': '$count'
+        }
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list),count_country, join_country_name,country_projection,country_name_proj]
+
+    list_documents = list(eu.aggregate(pipeline))
     return list_documents
 
 
