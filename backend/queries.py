@@ -157,6 +157,7 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = CPV Division description, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = contract count of each CPV Division, (int)
     """
+
     count_cpv = {'$group': {
         '_id': {
             'cpv': {'$substr': ['$CPV', 0, 2]},
@@ -187,10 +188,10 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    list_documents = []
+    pipeline = [year_country_filter(bot_year, top_year, country_list),count_cpv, join_cpv_description,cpv_projection,cpv_desc_proj]
 
+    list_documents = list(eu.aggregate(pipeline))
     return list_documents
-
 
 
 def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
