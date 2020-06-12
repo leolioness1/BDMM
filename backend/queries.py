@@ -511,6 +511,7 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
 
     }
     }
+
     projection = {
         '$project': {
             '_id': 0,
@@ -547,8 +548,8 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
         '$project': {
             '_id': False,
             'cpv': '$CPV_col.cpv_division_description',
-            'time_difference': 1,
-            'value_difference': 1
+            'time_difference': '$time_difference',
+            'value_difference': '$value_difference'
         }
     }
 
