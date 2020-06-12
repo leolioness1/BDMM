@@ -772,9 +772,21 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
     """
     eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
 
-    pipeline=[year_country_filter(bot_year, top_year, country_list),eu_filter]
-    list_documents = list(eu.aggregate(pipeline))
+    sum_country = {'$group': {'_id': {'country': '$ISO_COUNTRY_CODE'},
+                                'sum_val': {'$sum': '$VALUE_EURO'}
+                                }
+                   }
+    country_proj = {
+        '$project': {
+            '_id': False,
+            'country': '$_id.country',
+            'sum': '$sum_val'
+        }
+    }
 
+    pipeline=[year_country_filter(bot_year, top_year, country_list),eu_filter,sum_country,country_proj]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
