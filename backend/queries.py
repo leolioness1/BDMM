@@ -776,15 +776,31 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
                                 'sum_val': {'$sum': '$VALUE_EURO'}
                                 }
                    }
-    country_proj = {
+    join_iso_codes = {'$lookup': {
+        'from': 'iso_codes',
+        'localField': '_id.country',
+        'foreignField': 'alpha-2',
+        'as': 'iso'
+    }
+    }
+
+    iso_projection = {
         '$project': {
-            '_id': False,
-            'country': '$_id.country',
-            'sum': '$sum_val'
+            '_id': 0,
+            'sum': '$sum_val',
+            'iso': {'$arrayElemAt': ['$iso', 0]}
         }
     }
 
-    pipeline=[year_country_filter(bot_year, top_year, country_list),eu_filter,sum_country,country_proj]
+    country_proj = {
+        '$project': {
+            '_id': 0,
+            'sum': '$sum',
+            'country': "$iso.alpha-2"
+        }
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), eu_filter, sum_country,join_iso_codes,iso_projection, country_proj]
 
     list_documents = list(eu.aggregate(pipeline))
 
