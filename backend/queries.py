@@ -220,7 +220,8 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         'localField': '_id.cpv',
         'foreignField': 'cpv_division',
         'as': 'CPV_col'
-    }}
+    }
+    }
     cpv_projection = {
         '$project': {
             '_id': False,
@@ -439,10 +440,71 @@ def ex7_cpv_map(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = highest CPV Division average 'VALUE_EURO' of country, (float)
     value_3 = country in ISO-A2 format (string) (located in iso_codes collection)
     """
+    count_cpv_iso = {
+        '$group': {
+            '_id': {
+                'ISO_COUNTRY': '$ISO_COUNTRY_CODE',
+                'cpv': {'$substr': ['$CPV', 0, 2]}
+            },
+            'average_val': {'$avg': '$VALUE_EURO'}
+        }
+    }
 
-    pipeline = []
+    sort_avg = {
+        '$sort': {
+            'average_val': pymongo.DESCENDING
+        }
+    }
 
-    list_documents = []
+    top_cpv = {
+        '$group': {
+            '_id': {'country': '$_id.ISO_COUNTRY'},
+            'cpv': {'$first': '$_id.cpv'},
+            'avg': {'$max': '$average_val'}
+        }
+    }
+
+    join_cpv_description = {
+        '$lookup': {
+            'from': 'cpv',
+            'localField': 'cpv',
+            'foreignField': 'cpv_division',
+            'as': 'CPV_col'
+        }
+    }
+
+    join_iso_description = {
+        '$lookup': {
+            'from': 'iso_codes',
+            'localField': '_id.country',
+            'foreignField': 'alpha-2',
+            'as': 'ISO_col'
+        }
+    }
+
+    iso_cpv_projection = {
+        '$project': {
+            '_id': False,
+            'ISO_col': {'$arrayElemAt': ['$ISO_col', 0]},
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'average': '$avg'
+        }
+    }
+
+
+    iso_cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'country': '$ISO_col.iso_3166-2',
+            'cpv': '$CPV_col.cpv_division_description',
+            'avg': '$average'
+        }
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), count_cpv_iso, sort_avg, top_cpv,
+                join_cpv_description, join_iso_description, iso_cpv_projection, iso_cpv_desc_proj]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
