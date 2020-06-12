@@ -770,8 +770,9 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = sum 'VALUE_EURO' of country ('ISO_COUNTRY_CODE') name, (float)
     value_2 = country in ISO-A2 format (string) (located in iso_codes collection)
     """
+    eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
 
-    pipeline=[]
+    pipeline=[year_country_filter(bot_year, top_year, country_list),eu_filter]
     list_documents = list(eu.aggregate(pipeline))
 
 
