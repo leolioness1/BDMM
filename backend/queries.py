@@ -1022,11 +1022,57 @@ def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
     value_4 = company ('CAE_NAME') address, single string merging 'CAE_ADDRESS' and 'CAE_TOWN' separated by ' ' (space)
     """
 
-    pipeline = []
+    sum_value = {
+        '$group': {
+            '_id': {'country': '$ISO_COUNTRY_CODE', 'company': '$CAE_NAME'},
+            'sum': {'$sum': '$VALUE_EURO'},
+            'address': {'$first': {'$concat': [{"$toString": "$CAE_ADDRESS"}, " ", {"$toString": "$CAE_TOWN"}]}}
+        }}
 
-    list_documents = []
+    sort_sum = {'$sort': {'sum': pymongo.DESCENDING}}
+
+    top_company = {'$group': {
+        '_id': {'country': '$_id.country'},
+        'sum': {'$max': '$sum'},
+        'company': {'$first': '$_id.company'},
+        'address': {'$first': '$address'}
+    }}
+
+    join_iso_codes = {'$lookup': {
+        'from': 'iso_codes',
+        'localField': '_id.country',
+        'foreignField': 'alpha-2',
+        'as': 'iso'
+    }
+    }
+
+    iso_projection = {
+        '$project': {
+            '_id': 0,
+            'company': "$company",
+            'sum': '$sum',
+            'iso': {'$arrayElemAt': ['$iso', 0]},
+            'address': '$address'
+        }
+    }
+
+    iso_2 = {
+        '$project': {
+            '_id': 0,
+            'company': "$company",
+            'sum': '$sum',
+            'country': "$iso.alpha-2",
+            'address': '$address'
+        }
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), sum_value, sort_sum, top_company, join_iso_codes,
+                iso_projection, iso_2]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
+
 
 
 def ex20_business_connection(bot_year=2008, top_year=2020, country_list=countries):
@@ -1043,9 +1089,46 @@ def ex20_business_connection(bot_year=2008, top_year=2020, country_list=countrie
     value_2 = co-occurring number of contracts (int)
     """
 
-    pipeline = []
+    merge_company = {
+        '$project': {
+            '_id': 0,
+            'companies': {'$concat': [{"$toString": "$CAE_NAME"}, " with ", {"$toString": "$WIN_NAME"}]},
+        }
+    }
 
-    list_documents = []
+    count_occ = {'$group': {
+        '_id': {'companies': '$companies'},
+        'count': {'$sum': 1}
+    }
+    }
+
+    count_proj = {
+        '$project': {
+            '_id': 0,
+            'companies': '$_id.companies',
+            'count': '$count'
+        }
+    }
+
+    filter_out_none = {
+        "$match": {
+            "companies": {
+                "$exists": True,
+                "$ne": None
+            }
+        }
+    }
+
+    sort_count = {
+        '$sort': {'count': pymongo.DESCENDING
+                  }
+    }
+    company_limit = {'$limit': 5}
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), merge_company, count_occ, count_proj,
+                filter_out_none, sort_count, company_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
