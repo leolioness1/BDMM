@@ -1076,9 +1076,46 @@ def ex20_business_connection(bot_year=2008, top_year=2020, country_list=countrie
     value_2 = co-occurring number of contracts (int)
     """
 
-    pipeline = []
+    merge_company = {
+        '$project': {
+            '_id': 0,
+            'companies': {'$concat': [{"$toString": "$CAE_NAME"}, " with ", {"$toString": "$WIN_NAME"}]},
+        }
+    }
 
-    list_documents = []
+    count_occ = {'$group': {
+        '_id': {'companies': '$companies'},
+        'count': {'$sum': 1}
+    }
+    }
+
+    count_proj = {
+        '$project': {
+            '_id': 0,
+            'companies': '$_id.companies',
+            'count': '$count'
+        }
+    }
+
+    filter_out_none = {
+        "$match": {
+            "companies": {
+                "$exists": True,
+                "$ne": None
+            }
+        }
+    }
+
+    sort_count = {
+        '$sort': {'count': pymongo.DESCENDING
+                  }
+    }
+    company_limit = {'$limit': 5}
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), merge_company, count_occ, count_proj,
+                filter_out_none, sort_count, company_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
