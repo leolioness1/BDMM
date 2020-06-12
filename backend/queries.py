@@ -679,7 +679,7 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     country_name_proj = {
         '$project': {
             '_id': False,
-            'cpv': '$name_col.name',
+            'country': '$name_col.name',
             'avg': '$average'
         }
     }
@@ -714,9 +714,9 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     """
 
     average_country = {'$group': {'_id': {'country': '$ISO_COUNTRY_CODE'},
-                                'average_val': {'$avg': '$VALUE_EURO'}
-                                }
-                     }
+                                  'average_val': {'$avg': '$VALUE_EURO'}
+                                  }
+                       }
 
     join_country_name = {'$lookup': {
         'from': 'iso_codes',
@@ -736,7 +736,7 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     country_name_proj = {
         '$project': {
             '_id': False,
-            'cpv': '$name_col.name',
+            'country': '$name_col.name',
             'avg': '$average'
         }
     }
@@ -749,7 +749,8 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), average_country, join_country_name,country_projection, country_name_proj, country_sort, country_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), average_country, join_country_name,
+                country_projection, country_name_proj, country_sort, country_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -872,7 +873,29 @@ def ex16_business_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = average 'VALUE_EURO' of each company ('CAE_NAME'), (float)
     """
 
-    list_documents = ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries)
+    average_bus = {'$group': {'_id': {'bus': '$CAE_NAME'},
+                              'average': {'$avg': '$VALUE_EURO'}
+                              }
+                   }
+    bus_name_proj = {
+        '$project': {
+            '_id': False,
+            'company': '$_id.bus',
+            'avg': '$average'
+        }
+    }
+    bus_sort = {
+        '$sort': {
+            'avg': pymongo.DESCENDING
+        }
+    }
+    bus_limit = {
+        '$limit': 5
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), average_bus, bus_name_proj, bus_sort, bus_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -891,10 +914,37 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     value_1 = company ('CAE_NAME') name, (string)
     value_2 = average 'VALUE_EURO' of each company ('CAE_NAME'), (float)
     """
+    val_not_null ={
+        "$match": {
+            "VALUE_EURO": {
+                "$exists": True,
+                 "$gte": 0
+            }
+        }
+    }
+    average_bus = {'$group': {'_id': {'bus': '$CAE_NAME'},
+                              'average': {'$avg': '$VALUE_EURO'}
+                              }
+                   }
+    bus_name_proj = {
+        '$project': {
+            '_id': False,
+            'company': '$_id.bus',
+            'avg': '$average'
+        }
+    }
+    bus_sort = {
+        '$sort': {
+            'avg': pymongo.ASCENDING
+        }
+    }
+    bus_limit = {
+        '$limit': 5
+    }
 
-    pipeline = []
+    pipeline = [year_country_filter(bot_year, top_year, country_list),val_not_null, average_bus, bus_name_proj, bus_sort, bus_limit]
 
-    list_documents = []
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -912,11 +962,35 @@ def ex18_business_treemap(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = contract count of each company ('CAE_NAME'), (int)
     """
 
-    pipeline = []
+    count_bus = {'$group': {
+                '_id': {
+                    'bus': '$CAE_NAME'
+                },
+                'count_bus': {'$sum': 1}
+                    }
+            }
+    bus_name_proj = {
+        '$project': {
+            '_id': False,
+            'company': '$_id.bus',
+            'count': {'$toInt':'$count_bus'}
+        }
+    }
+    bus_sort = {
+        '$sort': {
+            'count': pymongo.DESCENDING
+        }
+    }
+    bus_limit = {
+        '$limit': 15
+    }
 
-    list_documents = []
+    pipeline = [year_country_filter(bot_year, top_year, country_list), count_bus,bus_name_proj, bus_sort, bus_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
+
 
 
 def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
