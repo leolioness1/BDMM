@@ -3,6 +3,7 @@ from pymongo import MongoClient
 import pymongo
 from backend.DB import eu
 from backend.DB import db
+from datetime import datetime
 
 ########################################################################################################################
 countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'UK', 'SI', 'LT',
@@ -541,13 +542,37 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
     value_2 = contract count for thar particular bucket, (int)
     """
 
-    pipeline = []
+    filter_cpv = {
+        '$match': {
+            '$expr': {'$eq': [{'$substr': ['$CPV', 0, 2]}, cpv]}
+        }
+    }
 
-    list_documents = []
+    bucket_value = {
+        '$bucket': {
+            'groupBy': '$VALUE_EURO',
+            'boundaries': [0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000],
+            'default': '-',  #default - ou 0?
+            'output': {
+                'count': {'$sum': 1}
+            }
+        }
+    }
+
+    project_bucket = {
+        '$project': {
+            '_id': False,
+            'bucket': '$_id',
+            'count': '$count'
+        }
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), filter_cpv, bucket_value, project_bucket]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
-from datetime import datetime
 
 def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -566,19 +591,21 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = average 'DT-DISPACH' - 'DT-AWARD', (float)
     value_3 = average 'EURO_AWARD' - 'VALUE_EURO' (float)
     """
-    dates_to_string = {'$project': {
-        'cpv': {'$substr': ['$CPV', 0, 2]},
-        'DT_DISPATCH': {'$dateFromString': {'dateString': '$DT_DISPATCH'}},
-        'DT_AWARD': {'$dateFromString': {'dateString': '$DT_AWARD'}}
-
-    }
+    dates_to_string = {
+        '$project': {
+            'cpv': {'$substr': ['$CPV', 0, 2]},
+            'DT_DISPATCH': {'$dateFromString': {'dateString': '$DT_DISPATCH'}},
+            'DT_AWARD': {'$dateFromString': {'dateString': '$DT_AWARD'}},
+            'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
+            'VALUE_EURO': '$VALUE_EURO'
+        }
     }
 
     projection = {
         '$project': {
             '_id': 0,
             'cpv': 1,
-            'time_diff': {'$subtract': ["$DT_DISPATCH_str", "$DT_AWARD_str"]},
+            'time_diff': {'$subtract': ["$DT_DISPATCH","$DT_AWARD"]},
             'value_diff': {'$subtract': ["$AWARD_VALUE_EURO", "$VALUE_EURO"]}
         }
     }
@@ -591,12 +618,15 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    join_cpv_description = {'$lookup': {
-        'from': 'cpv',
-        'localField': '_id.cpv',
-        'foreignField': 'cpv_division',
-        'as': 'CPV_col'
-    }}
+    join_cpv_description = {
+        '$lookup': {
+            'from': 'cpv',
+            'localField': '_id',
+            'foreignField': 'cpv_division',
+            'as': 'CPV_col'
+        }
+    }
+
     cpv_projection = {
         '$project': {
             '_id': False,
@@ -627,12 +657,12 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), dates_to_string,projection, cpv_avg, join_cpv_description, cpv_projection, cpv_desc_proj, sort, cpv_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), dates_to_string, projection, cpv_avg,
+                join_cpv_description, cpv_projection, cpv_desc_proj, sort, cpv_limit]
 
     list_documents = list(db.eu.aggregate(pipeline))
 
     return list_documents
-
 
 def ex10_country_box(bot_year=2008, top_year=2020, country_list=countries):
     """
