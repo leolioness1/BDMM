@@ -485,6 +485,7 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
 
     return list_documents
 
+from datetime import datetime
 
 def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -503,10 +504,69 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = average 'DT-DISPACH' - 'DT-AWARD', (float)
     value_3 = average 'EURO_AWARD' - 'VALUE_EURO' (float)
     """
+    dates_to_string = {'$project': {
+        'cpv': {'$substr': ['$CPV', 0, 2]},
+        'DT_DISPATCH': {'$dateFromString': {'dateString': '$DT_DISPATCH'}},
+        'DT_AWARD': {'$dateFromString': {'dateString': '$DT_AWARD'}}
 
-    pipeline = []
+    }
+    }
+    projection = {
+        '$project': {
+            '_id': 0,
+            'cpv': 1,
+            'time_diff': {'$subtract': ["$DT_DISPATCH_str", "$DT_AWARD_str"]},
+            'value_diff': {'$subtract': ["$AWARD_VALUE_EURO", "$VALUE_EURO"]}
+        }
+    }
 
-    list_documents = []
+    cpv_avg = {
+        '$group': {
+            '_id': '$cpv',
+            'time_diff_avg': {'$avg': '$time_diff'},
+            'value_diff_avg': {'$avg': '$value_diff'}
+        }
+    }
+
+    join_cpv_description = {'$lookup': {
+        'from': 'cpv',
+        'localField': '_id.cpv',
+        'foreignField': 'cpv_division',
+        'as': 'CPV_col'
+    }}
+    cpv_projection = {
+        '$project': {
+            '_id': False,
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'time_difference':'$time_diff_avg',
+            'value_difference':'$value_diff_avg'
+        }
+    }
+
+    cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'cpv': '$CPV_col.cpv_division_description',
+            'time_difference': 1,
+            'value_difference': 1
+        }
+    }
+
+    sort = {
+        '$sort': {
+            'time_difference': pymongo.DESCENDING,
+            'value_difference': pymongo.DESCENDING
+
+        }
+    }
+
+    cpv_limit = {
+        '$limit': 5
+    }
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list), dates_to_string,projection, cpv_avg, join_cpv_description, cpv_projection, cpv_desc_proj, sort, cpv_limit]
+
+    list_documents = list(db.eu.aggregate(pipeline))
 
     return list_documents
 
@@ -776,6 +836,7 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
                                 'sum_val': {'$sum': '$VALUE_EURO'}
                                 }
                    }
+
     join_iso_codes = {'$lookup': {
         'from': 'iso_codes',
         'localField': '_id.country',
@@ -971,7 +1032,7 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),val_not_null, average_bus, bus_name_proj, bus_sort, bus_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), val_not_null, average_bus, bus_name_proj, bus_sort, bus_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
