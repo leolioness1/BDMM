@@ -571,8 +571,6 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
 
     return list_documents
 
-from datetime import datetime
-
 def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     """
     Returns the average time and value difference for each CPV, return the highest 5 cpvs
@@ -678,6 +676,14 @@ def ex10_country_box(bot_year=2008, top_year=2020, country_list=countries):
     avg_country_euro_avg_y_eu = average value of each countries ('ISO_COUNTRY_CODE') contracts average VALUE_EURO' with 'B_EU_FUNDS', (int)
     avg_country_euro_avg_n_eu = average value of each countries ('ISO_COUNTRY_CODE') contracts average 'VALUE_EURO' with out 'B_EU_FUNDS' (int)
     """
+    val_not_null = {
+        "$match": {
+            "VALUE_EURO": {
+                "$exists": True,
+                "$gte": 0
+            }
+        }
+    }
     average_value_country = {'$group': {
                 '_id': {
                     'country': '$ISO_COUNTRY_CODE'
@@ -728,11 +734,11 @@ def ex10_country_box(bot_year=2008, top_year=2020, country_list=countries):
                     'avg_avg': {'$avg': to_average}}}
         return avg_avg_q
 
-    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list), average_value_country, average_average('$avg_val_country')]
-    pipeline_count = [year_country_filter(bot_year, top_year, country_list), count_country, average_average('$count_country')]
-    pipeline_offer_avg = [year_country_filter(bot_year, top_year, country_list), average_offer_country, average_average('$avg_offer_country')]
-    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter, average_value_eu_country, average_average('$avg_val_eu_country')]
-    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),noeu_filter, average_value_noeu_country, average_average('$avg_val_noeu_country')]
+    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),val_not_null, average_value_country, average_average('$avg_val_country')]
+    pipeline_count = [year_country_filter(bot_year, top_year, country_list),val_not_null, count_country, average_average('$count_country')]
+    pipeline_offer_avg = [year_country_filter(bot_year, top_year, country_list),val_not_null, average_offer_country, average_average('$avg_offer_country')]
+    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list),val_not_null, eu_filter, average_value_eu_country, average_average('$avg_val_eu_country')]
+    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),val_not_null,noeu_filter, average_value_noeu_country, average_average('$avg_val_noeu_country')]
 
 
     avg_country_euro_avg = int(list(eu.aggregate(pipeline_val_avg))[0]['avg_avg'])
