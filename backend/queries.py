@@ -1199,28 +1199,41 @@ def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
     value_4 = company ('CAE_NAME') address, single string merging 'CAE_ADDRESS' and 'CAE_TOWN' separated by ' ' (space)
     """
 
+    filter_out_none = {
+        "$match": {
+            "CAE_NAME": {
+                "$exists": True,
+                "$ne": None
+            }
+        }
+    }
+
     sum_value = {
         '$group': {
-            '_id': {'country': '$ISO_COUNTRY_CODE', 'company': '$CAE_NAME'},
+            '_id': {'country': '$ISO_COUNTRY_CODE', 'company': '$CAE_NAME',
+            'CAE_ADDRESS': "$CAE_ADDRESS", "CAE_TOWN": "$CAE_TOWN"},
             'sum': {'$sum': '$VALUE_EURO'},
-            'address': {'$first': {'$concat': [{"$toString": "$CAE_ADDRESS"}, " ", {"$toString": "$CAE_TOWN"}]}}
-        }}
+        }
+    }
 
     sort_sum = {'$sort': {'sum': -1}}
 
-    top_company = {'$group': {
-        '_id': {'country': '$_id.country'},
-        'sum': {'$max': '$sum'},
-        'company': {'$first': '$_id.company'},
-        'address': {'$first': '$address'}
-    }}
-
-    join_iso_codes = {'$lookup': {
-        'from': 'iso_codes',
-        'localField': '_id.country',
-        'foreignField': 'alpha-2',
-        'as': 'iso'
+    top_company = {
+        '$group': {
+            '_id': {'country': '$_id.country'},
+            'sum': {'$max': '$sum'},
+            'company': {'$first': '$_id.company'},
+            'address': {'$first': {'$concat': [{"$toString": "$_id.CAE_ADDRESS"}, " ", {"$toString": "$_id.CAE_TOWN"}]}}
+        }
     }
+
+    join_iso_codes = {
+        '$lookup': {
+            'from': 'iso_codes',
+            'localField': '_id.country',
+            'foreignField': 'alpha-2',
+            'as': 'iso'
+        }
     }
 
     iso_projection = {
@@ -1243,10 +1256,10 @@ def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), sum_value, sort_sum, top_company, join_iso_codes,
-                iso_projection, iso_2]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), sum_value, sort_sum, top_company,
+                join_iso_codes, iso_projection, iso_2]
 
-    list_documents = list(eu.aggregate(pipeline))
+    list_documents = list(eu.aggregate(pipeline, allowDiskUse = True))
 
     return list_documents
 
