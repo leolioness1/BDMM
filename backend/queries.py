@@ -3,7 +3,6 @@ from pymongo import MongoClient
 import pymongo
 from backend.DB import eu
 from backend.DB import db
-from datetime import datetime
 
 ########################################################################################################################
 countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'UK', 'SI', 'LT',
@@ -221,8 +220,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         'localField': '_id.cpv',
         'foreignField': 'cpv_division',
         'as': 'CPV_col'
-    }
-    }
+    }}
     cpv_projection = {
         '$project': {
             '_id': False,
@@ -240,7 +238,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     }
     cpv_sort = {
         '$sort': {
-            'avg': pymongo.DESCENDING
+            'avg': -1
         }
     }
     cpv_limit = {
@@ -298,7 +296,7 @@ def ex4_cpv_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     }
     cpv_sort = {
         '$sort': {
-            'avg': pymongo.ASCENDING
+            'avg': 1
         }
     }
     cpv_limit = {
@@ -356,7 +354,7 @@ def ex5_cpv_bar_3(bot_year=2008, top_year=2020, country_list=countries):
     }
     cpv_sort = {
         '$sort': {
-            'avg': pymongo.DESCENDING
+            'avg': -1
         }
     }
     cpv_limit = {
@@ -413,7 +411,7 @@ def ex6_cpv_bar_4(bot_year=2008, top_year=2020, country_list=countries):
     }
     cpv_sort = {
         '$sort': {
-            'avg': pymongo.DESCENDING
+            'avg': -1
         }
     }
     cpv_limit = {
@@ -453,7 +451,7 @@ def ex7_cpv_map(bot_year=2008, top_year=2020, country_list=countries):
 
     sort_avg = {
         '$sort': {
-            'average_val': pymongo.DESCENDING
+            'average_val': -1
         }
     }
 
@@ -573,6 +571,7 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
 
     return list_documents
 
+from datetime import datetime
 
 def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -647,8 +646,8 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
 
     sort = {
         '$sort': {
-            'time_difference': pymongo.DESCENDING,
-            'value_difference': pymongo.DESCENDING
+            'time_difference': -1,
+            'value_difference': -1
 
         }
     }
@@ -838,7 +837,7 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     }
     country_sort = {
         '$sort': {
-            'avg': pymongo.DESCENDING
+            'avg': -1
         }
     }
     country_limit = {
@@ -895,7 +894,7 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     }
     country_sort = {
         '$sort': {
-            'avg': pymongo.ASCENDING
+            'avg': 1
         }
     }
     country_limit = {
@@ -1069,7 +1068,7 @@ def ex16_business_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     }
     bus_sort = {
         '$sort': {
-            'avg': pymongo.DESCENDING
+            'avg': -1
         }
     }
     bus_limit = {
@@ -1118,7 +1117,7 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     }
     bus_sort = {
         '$sort': {
-            'avg': pymongo.ASCENDING
+            'avg': 1
         }
     }
     bus_limit = {
@@ -1161,7 +1160,7 @@ def ex18_business_treemap(bot_year=2008, top_year=2020, country_list=countries):
     }
     bus_sort = {
         '$sort': {
-            'count': pymongo.DESCENDING
+            'count': -1
         }
     }
     bus_limit = {
@@ -1199,7 +1198,7 @@ def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
             'address': {'$first': {'$concat': [{"$toString": "$CAE_ADDRESS"}, " ", {"$toString": "$CAE_TOWN"}]}}
         }}
 
-    sort_sum = {'$sort': {'sum': pymongo.DESCENDING}}
+    sort_sum = {'$sort': {'sum': -1}}
 
     top_company = {'$group': {
         '_id': {'country': '$_id.country'},
@@ -1258,49 +1257,46 @@ def ex20_business_connection(bot_year=2008, top_year=2020, country_list=countrie
     value_1 = company ('CAE_NAME') string merged with company ('WIN_NAME') seperated by the string ' with ', (string)
     value_2 = co-occurring number of contracts (int)
     """
-
-    merge_company = {
-        '$project': {
-            '_id': 0,
-            'companies': {'$concat': [{"$toString": "$CAE_NAME"}, " with ", {"$toString": "$WIN_NAME"}]},
-        }
-    }
-
-    count_occ = {'$group': {
-        '_id': {'companies': '$companies'},
-        'count': {'$sum': 1}
-    }
-    }
-
-    count_proj = {
-        '$project': {
-            '_id': 0,
-            'companies': '$_id.companies',
-            'count': '$count'
-        }
-    }
-
     filter_out_none = {
         "$match": {
-            "companies": {
+            "CAE_NAME": {
+                "$exists": True,
+                "$ne": None
+            },
+            "WIN_NAME": {
                 "$exists": True,
                 "$ne": None
             }
         }
     }
 
+    count_occ = {'$group': {
+        '_id': {'company': '$CAE_NAME', 'company_win': '$WIN_NAME'},
+        'count_1': {'$sum': 1}
+        }
+    }
+
+    merge_company = {
+        '$project': {
+            '_id':0,
+            'companies': {'$concat': [{"$toString": "$_id.company"}, " with ", {"$toString": "$_id.company_win"}]},
+            'count': '$count_1'
+        }
+    }
+
     sort_count = {
-        '$sort': {'count': pymongo.DESCENDING
-                  }
+        '$sort': {'count': -1}
     }
     company_limit = {'$limit': 5}
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), merge_company, count_occ, count_proj,
-                filter_out_none, sort_count, company_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), filter_out_none,count_occ,merge_company,sort_count, company_limit]
 
-    list_documents = list(eu.aggregate(pipeline))
+    list_documents = list(eu.aggregate(pipeline, allowDiskUse=True))
 
     return list_documents
+
+ex20_business_connection()
+
 
 def insert_operation(document):
     '''
@@ -1308,6 +1304,7 @@ def insert_operation(document):
 
         In case pre computed tables were generated for the queries they should be recomputed with the new data.
     '''
+
     inserted_ids = eu.insert_many(document).inserted_ids
 
     return inserted_ids
