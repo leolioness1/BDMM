@@ -98,7 +98,14 @@
       <option name="project" value="LOCAL" />
       <updated>1591974920214</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="test git commit">
+      <created>1591991603468</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1591991603468</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -141,7 +148,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/backend/queries.py</url>
-          <line>573</line>
+          <line>572</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>

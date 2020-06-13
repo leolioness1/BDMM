@@ -10,7 +10,6 @@ countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'UK', 'SI', 'LT',
              'ES', 'FR', 'IE', 'SE', 'NL', 'PT', 'PL', 'DK', 'MK', 'DE', 'IT',
              'BG', 'CY', 'AT', 'LU', 'BE', 'FI', 'EE', 'SK', 'MT', 'LI', 'IS']
 
-
 def ex0_cpv_example(bot_year=2008, top_year=2020):
     """
     Returns all contracts in given year 'YEAR' range and cap to 100000000 the 'VALUE_EURO'
@@ -1192,28 +1191,41 @@ def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
     value_4 = company ('CAE_NAME') address, single string merging 'CAE_ADDRESS' and 'CAE_TOWN' separated by ' ' (space)
     """
 
+    filter_out_none = {
+        "$match": {
+            "CAE_NAME": {
+                "$exists": True,
+                "$ne": None
+            }
+        }
+    }
+
     sum_value = {
         '$group': {
-            '_id': {'country': '$ISO_COUNTRY_CODE', 'company': '$CAE_NAME'},
+            '_id': {'country': '$ISO_COUNTRY_CODE', 'company': '$CAE_NAME',
+            'CAE_ADDRESS': "$CAE_ADDRESS", "CAE_TOWN": "$CAE_TOWN"},
             'sum': {'$sum': '$VALUE_EURO'},
-            'address': {'$first': {'$concat': [{"$toString": "$CAE_ADDRESS"}, " ", {"$toString": "$CAE_TOWN"}]}}
-        }}
+        }
+    }
 
     sort_sum = {'$sort': {'sum': pymongo.DESCENDING}}
 
-    top_company = {'$group': {
-        '_id': {'country': '$_id.country'},
-        'sum': {'$max': '$sum'},
-        'company': {'$first': '$_id.company'},
-        'address': {'$first': '$address'}
-    }}
-
-    join_iso_codes = {'$lookup': {
-        'from': 'iso_codes',
-        'localField': '_id.country',
-        'foreignField': 'alpha-2',
-        'as': 'iso'
+    top_company = {
+        '$group': {
+            '_id': {'country': '$_id.country'},
+            'sum': {'$max': '$sum'},
+            'company': {'$first': '$_id.company'},
+            'address': {'$first': {'$concat': [{"$toString": "$_id.CAE_ADDRESS"}, " ", {"$toString": "$_id.CAE_TOWN"}]}}
+        }
     }
+
+    join_iso_codes = {
+        '$lookup': {
+            'from': 'iso_codes',
+            'localField': '_id.country',
+            'foreignField': 'alpha-2',
+            'as': 'iso'
+        }
     }
 
     iso_projection = {
@@ -1236,12 +1248,15 @@ def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), sum_value, sort_sum, top_company, join_iso_codes,
-                iso_projection, iso_2]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), sum_value, sort_sum, top_company,
+                join_iso_codes, iso_projection, iso_2]
 
-    list_documents = list(eu.aggregate(pipeline))
+    list_documents = list(eu.aggregate(pipeline, allowDiskUse = True))
 
     return list_documents
+
+countries = ['ES', 'FR']
+ex19_business_map()
 
 
 
@@ -1295,7 +1310,7 @@ def ex20_business_connection(bot_year=2008, top_year=2020, country_list=countrie
     }
     company_limit = {'$limit': 5}
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), merge_company, count_occ, count_proj,
+    pipeline = [year_country_filter(bot_year, top_year, country_list), filter_out_none, merge_company, count_occ, count_proj,
                 filter_out_none, sort_count, company_limit]
 
     list_documents = list(eu.aggregate(pipeline))
