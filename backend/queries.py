@@ -220,7 +220,8 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         'localField': '_id.cpv',
         'foreignField': 'cpv_division',
         'as': 'CPV_col'
-    }}
+    }
+    }
     cpv_projection = {
         '$project': {
             '_id': False,
@@ -570,6 +571,7 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
     list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
+
 
 def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -1301,16 +1303,12 @@ def ex20_business_connection(bot_year=2008, top_year=2020, country_list=countrie
 
     return list_documents
 
-ex20_business_connection()
-
-
 def insert_operation(document):
     '''
         Insert operation.
 
         In case pre computed tables were generated for the queries they should be recomputed with the new data.
     '''
-
     inserted_ids = eu.insert_many(document).inserted_ids
 
     return inserted_ids
