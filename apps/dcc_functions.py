@@ -117,7 +117,7 @@ def cpv_map(bot_year, top_year, country_list):
         data = dict(type='choropleth',
                     locations=country_name,
                     # There are three ways to 'merge' your data with the data pre embedded in the map
-                    locationmode='country names',
+                    locationmode='ISO-3',
                     z=values,
                     text=text,
                     colorscale='Viridis'
@@ -394,7 +394,7 @@ def country_map(bot_year, top_year, country_list):
 
         data = dict(type='choropleth',
                     locations=country_name,
-                    locationmode='country names',
+                    locationmode='ISO-3',
                     z=values,
                     text=text,
                     colorscale='Viridis'
@@ -551,7 +551,7 @@ def business_map(bot_year, top_year, country_list):
         data = dict(type='choropleth',
                     locations=country_name,
                     # There are three ways to 'merge' your data with the data pre embedded in the map
-                    locationmode='country names',
+                    locationmode= 'ISO-3',
                     z=values,
                     text=address,
                     colorscale='Viridis',

@@ -482,7 +482,7 @@ def ex7_cpv_map(bot_year=2008, top_year=2020, country_list=countries):
     iso_cpv_desc_proj = {
         '$project': {
             '_id': False,
-            'country': '$ISO_col.iso_3166-2',
+            'country': '$ISO_col.alpha-3',
             'cpv': '$CPV_col.cpv_division_description',
             'avg': '$average'
         }
@@ -936,7 +936,7 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
         '$project': {
             '_id': 0,
             'sum': '$sum',
-            'country': "$iso.alpha-2"
+            'country': "$iso.alpha-3"
         }
     }
 
@@ -1217,18 +1217,18 @@ def ex19_business_map(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    iso_2 = {
+    iso_3 = {
         '$project': {
             '_id': 0,
             'company': "$company",
             'sum': '$sum',
-            'country': "$iso.alpha-2",
+            'country': "$iso.alpha-3",
             'address': '$address'
         }
     }
 
     pipeline = [year_country_filter(bot_year, top_year, country_list), sum_value, sort_sum, top_company,
-                join_iso_codes, iso_projection, iso_2]
+                join_iso_codes, iso_projection, iso_3]
 
     list_documents = list(eu.aggregate(pipeline, allowDiskUse = True))
 
