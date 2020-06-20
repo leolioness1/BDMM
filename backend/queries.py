@@ -5,7 +5,8 @@ from backend.DB import eu
 from backend.DB import db
 
 ########################################################################################################################
-countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'UK', 'SI', 'LT',
+#changed 'UK' to 'GB' to meet the changes below
+countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'GB', 'SI', 'LT',
              'ES', 'FR', 'IE', 'SE', 'NL', 'PT', 'PL', 'DK', 'MK', 'DE', 'IT',
              'BG', 'CY', 'AT', 'LU', 'BE', 'FI', 'EE', 'SK', 'MT', 'LI', 'IS']
 
@@ -54,7 +55,6 @@ def value_not_null_filter():
     return filter_
 
 #in order to avoid repeating the logic to correct the CPV codes to all of the following queries, we do it in the function below:
-
 def correct_CPV_codes():
     eu.update_many(
         {'CPV': {'$exists': True}},
@@ -78,6 +78,20 @@ list(eu.find({
     "$expr": { "$lt": [ {"$strLenCP": "$CPV"}, 8]}}, {'CPV': 1}
 ).limit(5))
 #[] meaning it worked
+#in order to avoid repeating the logic to correct the UK to GB country codes to all of the following queries, we do it in the function below:
+def correct_CPV_codes():
+    #update "UK" to "GB" in the "contracts" collection so it matches the "iso_codes" collection
+    eu.update_many(
+        {
+        'ISO_COUNTRY_CODE':{"$eq": "UK"}
+        },
+        {"$set": {"ISO_COUNTRY_CODE": "GB"}
+         }
+    )
+#run the update once (why it's commented out)
+#correct_CPV_codes()
+#check it worked
+# eu.distinct('ISO_COUNTRY_CODE')
 
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
