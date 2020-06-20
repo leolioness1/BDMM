@@ -1,6 +1,6 @@
-import pandas as pd
-from pymongo import MongoClient
-import pymongo
+# import pandas as pd
+# from pymongo import MongoClient
+# import pymongo
 from backend.DB import eu
 from backend.DB import db
 
@@ -37,12 +37,15 @@ def ex0_cpv_example(bot_year=2008, top_year=2020):
 
     return list_documents
 
+#define a global function for the filter as all que different question's functions need the same
 def year_country_filter(bot_year, top_year,country_list):
     filter_ = {
         '$match': {
-            '$and': [{'YEAR': {'$gte': bot_year}}, {'YEAR': {'$lte': top_year}},{'ISO_COUNTRY_CODE': {'$in': country_list}}]
+            '$and': [{'YEAR': {'$gte': bot_year}}, {'YEAR': {'$lte': top_year}},{'ISO_COUNTRY_CODE': {'$in': country_list}}],
+                'VALUE_EURO': {'$lt': 100000000}
         }}
     return filter_
+
 #in order to avoid repeating the logic to correct the CPV codes to all of the following queries, we do it in the function below:
 def correct_CPV_codes():
     eu.update_many(
@@ -62,10 +65,11 @@ def correct_CPV_codes():
 #this was commented as it only needs to be run once to update the db
 #correct_CPV_codes()
 #check if it worked
-# list(eu.find({
-#     "CPV": { "$exists": True },
-#     "$expr": { "$lt": [ { "$strLenCP": "$CPV" }, 8 ] }},{'CPV':1}
-# ).limit(5))
+list(eu.find({
+    "CPV": { "$exists": True },
+    "$expr": { "$lt": [ { "$strLenCP": "$CPV" }, 8 ] }},{'CPV':1}
+).limit(5))
+#[] meaning it worked
 
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
