@@ -107,7 +107,7 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list), average_cpv, avg_avg_q]
     pipeline_val_avg_ran=list(eu.aggregate(pipeline_val_avg))[0]
 
-    eu_filter ={'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
+    eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
 
     average_value_eu_cpv = {
         '$group': {
@@ -117,13 +117,10 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
             'avg_val_eu_CPV': {'$avg': '$VALUE_EURO'}
         }
     }
-    noeu_filter ={'$match': {"B_EU_FUNDS": {"$eq": "N"}}}
-
-
+    noeu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "N"}}}
     avg_avg_q_eu = {'$group': {
-                '_id':None,
+                '_id': None,
                 'avg_avg': {'$avg': '$avg_val_eu_CPV'}}}
-
 
     pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter, average_value_eu_cpv, avg_avg_q_eu]
     pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),noeu_filter, average_value_eu_cpv, avg_avg_q_eu]
@@ -588,6 +585,14 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     value_2 = average 'DT-DISPACH' - 'DT-AWARD', (float)
     value_3 = average 'EURO_AWARD' - 'VALUE_EURO' (float)
     """
+    val_not_null = {
+        "$match": {
+            "VALUE_EURO": {
+                "$exists": True,
+                "$gte": 0
+            }
+        }
+    }
     dates_to_string = {
         '$project': {
             'cpv': {'$substr': ['$CPV', 0, 2]},
@@ -628,8 +633,8 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
         '$project': {
             '_id': False,
             'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
-            'time_difference':'$time_diff_avg',
-            'value_difference':'$value_diff_avg'
+            'time_difference': '$time_diff_avg',
+            'value_difference': '$value_diff_avg'
         }
     }
 
@@ -645,7 +650,6 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     sort = {
         '$sort': {
             'time_difference': -1,
-            'value_difference': -1
 
         }
     }
@@ -654,7 +658,7 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), dates_to_string, projection, cpv_avg,
+    pipeline = [year_country_filter(bot_year, top_year, country_list),val_not_null, dates_to_string, projection, cpv_avg,
                 join_cpv_description, cpv_projection, cpv_desc_proj, sort, cpv_limit]
 
     list_documents = list(db.eu.aggregate(pipeline))
