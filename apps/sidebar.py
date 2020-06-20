@@ -34,7 +34,7 @@ countries =[
     ['CZ', 'Czechia'],
     ['MT', 'Malta'],
     ['LU', 'Luxembourg'],
-    ['UK', 'United Kingdom'],
+    ['GB', 'United Kingdom'],
     ['IE', 'Ireland'],
     ['PT', 'Portugal']
 ]

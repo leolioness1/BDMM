@@ -79,7 +79,7 @@ list(eu.find({
 ).limit(5))
 #[] meaning it worked
 #in order to avoid repeating the logic to correct the UK to GB country codes to all of the following queries, we do it in the function below:
-def correct_CPV_codes():
+def correct_country_codes():
     #update "UK" to "GB" in the "contracts" collection so it matches the "iso_codes" collection
     eu.update_many(
         {
@@ -89,10 +89,21 @@ def correct_CPV_codes():
          }
     )
 #run the update once (why it's commented out)
-#correct_CPV_codes()
+#correct_country_codes()
 #check it worked
-# eu.distinct('ISO_COUNTRY_CODE')
-
+eu.distinct('ISO_COUNTRY_CODE')
+#insert a new field in the collections just for the CPV division which is going to be used in many queries
+def perform_CPV_division():
+    eu.update_many(
+      {},
+      [
+          {'$set': {"cpv_div": {'$substr': ['$CPV', 0, 2]}}
+           }
+      ]
+    )
+#run the update once (why it's commented out)
+#perform_CPV_division()
+eu.distinct('cpv_div')
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
     Returns five metrics, described below
@@ -776,7 +787,7 @@ def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
     country_name_proj = {
         '$project': {
             '_id': False,
-            'country': '$name_col.name',
+            'country': '$name_col.alpha-3',
             'count': '$count'
         }
     }

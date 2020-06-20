@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-import backend.queries   as u
+import backend.queries as u
 
 
 def cpv_box(bot_year, top_year, country_list):
