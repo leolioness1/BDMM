@@ -776,8 +776,8 @@ def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
     country_name_proj = {
         '$project': {
             '_id': False,
-            'cpv': '$name_col.name',
-            'avg': '$average'
+            'country': '$name_col.name',
+            'count': '$count'
         }
     }
 
