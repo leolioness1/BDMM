@@ -53,7 +53,6 @@ def value_not_null_filter():
             '$and': [{'VALUE_EURO': {"$gte": 0}}, {'VALUE_EURO': {"$exists": True}}]
         }}
     return filter_
-
 #in order to avoid repeating the logic to correct the CPV codes to all of the following queries, we do it in the function below:
 def correct_CPV_codes():
     eu.update_many(
@@ -77,6 +76,7 @@ list(eu.find({
     "CPV": { "$exists": True },
     "$expr": { "$lt": [ {"$strLenCP": "$CPV"}, 8]}}, {'CPV': 1}
 ).limit(5))
+
 #[] meaning it worked
 #in order to avoid repeating the logic to correct the UK to GB country codes to all of the following queries, we do it in the function below:
 def correct_country_codes():
@@ -95,7 +95,7 @@ eu.distinct('ISO_COUNTRY_CODE')
 #insert a new field in the collections just for the CPV division which is going to be used in many queries
 def perform_CPV_division():
     eu.update_many(
-      {},
+      {'CPV': {"$exists": True}},
       [
           {'$set': {"cpv_div": {'$substr': ['$CPV', 0, 2]}}
            }
@@ -104,6 +104,12 @@ def perform_CPV_division():
 #run the update once (why it's commented out)
 #perform_CPV_division()
 eu.distinct('cpv_div')
+def cpv_not_null_filter():
+    filter_ = {
+        '$match': {
+            '$and': [{'cpv_div': {"$ne": "''"}}, {'cpv_div': {"$exists": True}}]
+        }}
+    return filter_
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
     Returns five metrics, described below
@@ -120,7 +126,7 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
     average_cpv = {'$group': {
                 '_id': {
-                    'CPV': {'$substr': ['$CPV', 0, 2]}
+                    'CPV': '$cpv_div'
                 },
                 'avg_val_CPV': {'$avg':'$VALUE_EURO'},
                 'count_CPV': {'$sum': 1},
@@ -143,7 +149,7 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     average_value_eu_cpv = {
         '$group': {
             '_id': {
-                'CPV': {'$substr': ['$CPV', 0, 2]}
+                'CPV': '$cpv_div'
             },
             'avg_val_eu_CPV': {'$avg': '$VALUE_EURO'}
         }
@@ -179,7 +185,7 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
     """
     count_cpv = {'$group': {
         '_id': {
-            'cpv': {'$substr': ['$CPV', 0, 2]},
+            'cpv':'$cpv_div',
         },
         'count_contracts': {'$sum': 1}
     }
@@ -228,7 +234,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     """
     count_cpv = {'$group': {
         '_id': {
-            'cpv': {'$substr': ['$CPV', 0, 2]},
+            'cpv': '$cpv_div',
         },
         'average_val': {'$avg': '$VALUE_EURO'}
     }
@@ -288,7 +294,7 @@ def ex4_cpv_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     """
     count_cpv = {'$group': {
         '_id': {
-            'cpv': {'$substr': ['$CPV', 0, 2]},
+            'cpv': '$cpv_div',
         },
         'average_val': {'$avg': '$VALUE_EURO'}
     }
@@ -349,7 +355,7 @@ def ex5_cpv_bar_3(bot_year=2008, top_year=2020, country_list=countries):
     eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
     count_cpv = {'$group': {
         '_id': {
-            'cpv': {'$substr': ['$CPV', 0, 2]},
+            'cpv': '$cpv_div'
         },
         'average_val': {'$avg': '$VALUE_EURO'}
     }
@@ -407,7 +413,7 @@ def ex6_cpv_bar_4(bot_year=2008, top_year=2020, country_list=countries):
 
     count_cpv = {'$group': {
         '_id': {
-            'cpv': {'$substr': ['$CPV', 0, 2]},
+            'cpv': '$cpv_div',
         },
         'average_val': {'$avg': '$VALUE_EURO'}
     }
@@ -467,7 +473,7 @@ def ex7_cpv_map(bot_year=2008, top_year=2020, country_list=countries):
         '$group': {
             '_id': {
                 'ISO_COUNTRY': '$ISO_COUNTRY_CODE',
-                'cpv': {'$substr': ['$CPV', 0, 2]}
+                'cpv': '$cpv_div'
             },
             'average_val': {'$avg': '$VALUE_EURO'}
         }
@@ -565,7 +571,7 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
     """
     filter_cpv = {
         '$match': {
-            '$expr': {'$eq': [{'$substr': ['$CPV', 0, 2]}, cpv]}
+            '$expr': {'$eq': ['$cpv_div', cpv]}
         }
     }
 
@@ -573,7 +579,7 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
         '$bucket': {
             'groupBy': '$VALUE_EURO',
             'boundaries': [0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000],
-            'default': '-',  #default - ou 0?
+            'default': 1000000,  # A literal that specifies the _id of an additional bucket that contains all documents whose groupBy expression result does not fall into a bucket specified by boundaries.
             'output': {
                 'count': {'$sum': 1}
             }
@@ -588,7 +594,7 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), filter_cpv, bucket_value, project_bucket]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(),cpv_not_null_filter(), filter_cpv, bucket_value, project_bucket]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -614,7 +620,7 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
     """
     dates_to_string = {
         '$project': {
-            'cpv': {'$substr': ['$CPV', 0, 2]},
+            'cpv': '$cpv_div',
             'DT_DISPATCH': {'$dateFromString': {'dateString': '$DT_DISPATCH'}},
             'DT_AWARD': {'$dateFromString': {'dateString': '$DT_AWARD'}},
             'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
