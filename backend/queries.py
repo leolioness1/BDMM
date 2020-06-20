@@ -42,7 +42,7 @@ def year_country_filter(bot_year, top_year,country_list):
     filter_ = {
         '$match': {
             '$and': [{'YEAR': {'$gte': bot_year}}, {'YEAR': {'$lte': top_year}},{'ISO_COUNTRY_CODE': {'$in': country_list}}],
-            'VALUE_EURO':{'$lt': 100000000}
+            'VALUE_EURO': {'$lt': 100000000}
         }}
     return filter_
 
@@ -54,6 +54,7 @@ def value_not_null_filter():
     return filter_
 
 #in order to avoid repeating the logic to correct the CPV codes to all of the following queries, we do it in the function below:
+
 def correct_CPV_codes():
     eu.update_many(
         {'CPV': {'$exists': True}},
@@ -109,7 +110,7 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
         'avg_offer': {'$avg': '$avg_offer_CPV'}
     }}
 
-    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list), value_not_null_filter, average_cpv, avg_avg_q]
+    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list), value_not_null_filter(), average_cpv, avg_avg_q]
     pipeline_val_avg_ran=list(eu.aggregate(pipeline_val_avg))[0]
 
     eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
@@ -127,8 +128,8 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
                 '_id': None,
                 'avg_avg': {'$avg': '$avg_val_eu_CPV'}}}
 
-    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter, value_not_null_filter, average_value_eu_cpv, avg_avg_q_eu]
-    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list), noeu_filter, value_not_null_filter, average_value_eu_cpv, avg_avg_q_eu]
+    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter, value_not_null_filter(), average_value_eu_cpv, avg_avg_q_eu]
+    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list), noeu_filter, value_not_null_filter(), average_value_eu_cpv, avg_avg_q_eu]
 
     avg_cpv_euro_avg = int(pipeline_val_avg_ran['avg_val'])
     avg_cpv_count = int(pipeline_val_avg_ran['avg_count'])
@@ -241,7 +242,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -300,7 +301,7 @@ def ex4_cpv_bar_2(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, count_cpv, join_cpv_description, cpv_projection,
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection,
                 cpv_desc_proj, cpv_sort, cpv_limit]
 
     list_documents = list(eu.aggregate(pipeline))
@@ -358,7 +359,7 @@ def ex5_cpv_bar_3(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),eu_filter,value_not_null_filter, count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),eu_filter,value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -416,7 +417,7 @@ def ex6_cpv_bar_4(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),noeu_filter,value_not_null_filter, count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),noeu_filter,value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -498,7 +499,7 @@ def ex7_cpv_map(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, count_cpv_iso, sort_avg, top_cpv,
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv_iso, sort_avg, top_cpv,
                 join_cpv_description, join_iso_description, iso_cpv_projection, iso_cpv_desc_proj]
 
     list_documents = list(eu.aggregate(pipeline))
@@ -562,7 +563,7 @@ def ex8_cpv_hist(bot_year=2008, top_year=2020, country_list=countries, cpv='50')
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, filter_cpv, bucket_value, project_bucket]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), filter_cpv, bucket_value, project_bucket]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -651,7 +652,7 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, dates_to_string, projection, cpv_avg,
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), dates_to_string, projection, cpv_avg,
                 join_cpv_description, cpv_projection, cpv_desc_proj, sort, cpv_limit]
 
     list_documents = list(db.eu.aggregate(pipeline))
@@ -690,7 +691,7 @@ def ex10_country_box(bot_year=2008, top_year=2020, country_list=countries):
             'avg_offer': {'$avg': '$avg_offer_country'}
         }
     }
-    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, average_cpv, avg_avg_q]
+    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_cpv, avg_avg_q]
     pipeline_val_avg_ran = list(eu.aggregate(pipeline_val_avg))[0]
 
 
@@ -711,8 +712,8 @@ def ex10_country_box(bot_year=2008, top_year=2020, country_list=countries):
                 '_id':None,
                 'avg_avg': {'$avg': '$avg_val_eu_country'}}}
 
-    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter,value_not_null_filter, average_value_eu_country, avg_avg_q_eu]
-    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),noeu_filter,value_not_null_filter, average_value_eu_country, avg_avg_q_eu]
+    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter,value_not_null_filter(), average_value_eu_country, avg_avg_q_eu]
+    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),noeu_filter,value_not_null_filter(), average_value_eu_country, avg_avg_q_eu]
 
 
     avg_country_euro_avg = int(pipeline_val_avg_ran['avg_val'])
@@ -734,7 +735,7 @@ def ex11_country_treemap(bot_year=2008, top_year=2020, country_list=countries):
     [{country: value_1, count: value_2}, ....]
 
     Where:
-    value_1 = Country ('ISO_COUNTRY_CODE') name, (string) (located in iso_codes collection')
+    value_1 = Country ('ISO_COUNTRY_CODE') name, (string)
     value_2 = contract count of each country, (int)
     """
 
@@ -784,7 +785,7 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
     [{country: value_1, avg: value_2}, ....]
 
     Where:
-    value_1 = Country ('ISO_COUNTRY_CODE') name, (string) (located in cpv collection as 'cpv_division_description')
+    value_1 = Country ('ISO_COUNTRY_CODE') name, (string)
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
 
@@ -824,7 +825,7 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, average_country, join_country_name,country_projection, country_name_proj, country_sort, country_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_country, join_country_name,country_projection, country_name_proj, country_sort, country_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -841,7 +842,7 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     [{country: value_1, avg: value_2}, ....]
 
     Where:
-    value_1 = Country ('ISO_COUNTRY_CODE') name, (string) (located in cpv collection as 'cpv_division_description')
+    value_1 = Country ('ISO_COUNTRY_CODE') name, (string)
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
     """
 
@@ -933,7 +934,7 @@ def ex14_country_map(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), eu_filter,value_not_null_filter, sum_country,join_iso_codes,iso_projection, country_proj]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), eu_filter,value_not_null_filter(), sum_country,join_iso_codes,iso_projection, country_proj]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -973,7 +974,7 @@ def ex15_business_box(bot_year=2008, top_year=2020, country_list=countries):
             'avg_offer': {'$avg': '$avg_offer_bus'}
         }
     }
-    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, average_cpv, avg_avg_q]
+    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_cpv, avg_avg_q]
     pipeline_val_avg_ran = list(eu.aggregate(pipeline_val_avg))[0]
 
     eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
@@ -993,8 +994,8 @@ def ex15_business_box(bot_year=2008, top_year=2020, country_list=countries):
                 'avg_avg': {'$avg': '$avg_val_eu_bus'}}}
 
 
-    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter,value_not_null_filter, average_value_eu_bus, avg_avg_q_eu]
-    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),noeu_filter,value_not_null_filter, average_value_eu_bus, avg_avg_q_eu]
+    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter,value_not_null_filter(), average_value_eu_bus, avg_avg_q_eu]
+    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list),noeu_filter,value_not_null_filter(), average_value_eu_bus, avg_avg_q_eu]
 
 
     avg_business_euro_avg = int(pipeline_val_avg_ran['avg_val'])
@@ -1039,7 +1040,7 @@ def ex16_business_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, average_bus, bus_name_proj, bus_sort, bus_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_bus, bus_name_proj, bus_sort, bus_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -1080,7 +1081,7 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), value_not_null_filter, average_bus, bus_name_proj, bus_sort, bus_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list), value_not_null_filter(), average_bus, bus_name_proj, bus_sort, bus_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -1123,7 +1124,7 @@ def ex18_business_treemap(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 15
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, count_bus,bus_name_proj, bus_sort, bus_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_bus,bus_name_proj, bus_sort, bus_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -1271,6 +1272,7 @@ def insert_operation(document):
         In case pre computed tables were generated for the queries they should be recomputed with the new data.
     '''
     inserted_ids = eu.insert_many(document).inserted_ids
+
 
     return inserted_ids
 
