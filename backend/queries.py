@@ -49,7 +49,7 @@ def year_country_filter(bot_year, top_year,country_list):
 def value_not_null_filter():
     filter_ = {
         '$match': {
-            '$and': [{'VALUE_EURO':{"$gte": 0}},{'VALUE_EURO':{"$exists": True}}]
+            '$and': [{'VALUE_EURO': {"$gte": 0}}, {'VALUE_EURO':{"$exists": True}}]
         }}
     return filter_
 
@@ -74,7 +74,7 @@ def correct_CPV_codes():
 #check if it worked
 list(eu.find({
     "CPV": { "$exists": True },
-    "$expr": { "$lt": [ { "$strLenCP": "$CPV" }, 8 ] }},{'CPV':1}
+    "$expr": { "$lt": [ {"$strLenCP": "$CPV"}, 8]}}, {'CPV': 1}
 ).limit(5))
 #[] meaning it worked
 
@@ -110,7 +110,7 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
         'avg_offer': {'$avg': '$avg_offer_CPV'}
     }}
 
-    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),val_not_null, average_cpv, avg_avg_q]
+    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter, average_cpv, avg_avg_q]
     pipeline_val_avg_ran=list(eu.aggregate(pipeline_val_avg))[0]
 
     eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
