@@ -110,7 +110,7 @@ def cpv_not_null_filter():
             '$and': [{'cpv_div': {"$ne": "''"}}, {'cpv_div': {"$exists": True}}]
         }}
     return filter_
-def create_coillection():
+def create_collection():
 
     projection = {
         '$project':{
@@ -189,7 +189,7 @@ def create_coillection():
         }
     }
     save_collection = {'$out': 'joined_eu'}
-    pipeline = [{projection,join_cpv_description,join_iso_description,iso_cpv_projection,iso_cpv_desc_proj,save_collection}]
+    pipeline = [projection,join_cpv_description,join_iso_description,iso_cpv_projection,iso_cpv_desc_proj,save_collection]
     eu.aggregate(pipeline)
 
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
@@ -223,8 +223,11 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
         'avg_offer': {'$avg': '$avg_offer_CPV'}
     }}
 
-    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list), value_not_null_filter(), average_cpv, avg_avg_q]
+    pipeline_val_avg = [year_country_filter(bot_year, top_year, country_list),cpv_not_null_filter(), value_not_null_filter(), average_cpv, avg_avg_q]
     pipeline_val_avg_ran=list(eu.aggregate(pipeline_val_avg))[0]
+    avg_cpv_euro_avg = int(pipeline_val_avg_ran['avg_val'])
+    avg_cpv_count = int(pipeline_val_avg_ran['avg_count'])
+    avg_cpv_offer_avg = int(pipeline_val_avg_ran['avg_offer'])
 
     eu_filter = {'$match': {"B_EU_FUNDS": {"$eq": "Y"}}}
 
@@ -241,12 +244,9 @@ def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
                 '_id': None,
                 'avg_avg': {'$avg': '$avg_val_eu_CPV'}}}
 
-    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter, value_not_null_filter(), average_value_eu_cpv, avg_avg_q_eu]
-    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list), noeu_filter, value_not_null_filter(), average_value_eu_cpv, avg_avg_q_eu]
+    pipeline_val_eu_avg = [year_country_filter(bot_year, top_year, country_list), eu_filter,cpv_not_null_filter(), value_not_null_filter(), average_value_eu_cpv, avg_avg_q_eu]
+    pipeline_val_noeu_avg = [year_country_filter(bot_year, top_year, country_list), noeu_filter,cpv_not_null_filter(), value_not_null_filter(), average_value_eu_cpv, avg_avg_q_eu]
 
-    avg_cpv_euro_avg = int(pipeline_val_avg_ran['avg_val'])
-    avg_cpv_count = int(pipeline_val_avg_ran['avg_count'])
-    avg_cpv_offer_avg = int(pipeline_val_avg_ran['avg_offer'])
     avg_cpv_euro_avg_y_eu = int(list(eu.aggregate(pipeline_val_eu_avg))[0]['avg_avg'])
     avg_cpv_euro_avg_n_eu = int(list(eu.aggregate(pipeline_val_noeu_avg))[0]['avg_avg'])
 
@@ -295,7 +295,7 @@ def ex2_cpv_treemap(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),cpv_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj]
 
     list_documents = list(eu.aggregate(pipeline))
     return list_documents
@@ -356,7 +356,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
 #    }
     save_collection = {'$out': 'CPV_collection'}
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort,save_collection]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),cpv_not_null_filter(),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort,save_collection]
     eu.aggregate(pipeline)
     list_documents = list(db.CPV_collection.find({},{'_id':0}).limit(5))
 
@@ -472,7 +472,7 @@ def ex5_cpv_bar_3(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),eu_filter,value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),eu_filter,cpv_not_null_filter(),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -530,7 +530,7 @@ def ex6_cpv_bar_4(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),noeu_filter,value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
+    pipeline = [year_country_filter(bot_year, top_year, country_list),noeu_filter,cpv_not_null_filter(),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
 
     list_documents = list(eu.aggregate(pipeline))
 
@@ -612,7 +612,7 @@ def ex7_cpv_map(bot_year=2008, top_year=2020, country_list=countries):
         }
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv_iso, sort_avg, top_cpv,
+    pipeline = [year_country_filter(bot_year, top_year, country_list),cpv_not_null_filter(),value_not_null_filter(), count_cpv_iso, sort_avg, top_cpv,
                 join_cpv_description, join_iso_description, iso_cpv_projection, iso_cpv_desc_proj]
 
     list_documents = list(eu.aggregate(pipeline))
@@ -765,7 +765,7 @@ def ex9_cpv_bar_diff(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), dates_to_string, projection, cpv_avg,
+    pipeline = [year_country_filter(bot_year, top_year, country_list),cpv_not_null_filter(),value_not_null_filter(), dates_to_string, projection, cpv_avg,
                 join_cpv_description, cpv_projection, cpv_desc_proj, sort, cpv_limit]
 
     list_documents = list(db.eu.aggregate(pipeline))
