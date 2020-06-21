@@ -110,6 +110,7 @@ def cpv_not_null_filter():
             '$and': [{'cpv_div': {"$ne": "''"}}, {'cpv_div': {"$exists": True}}]
         }}
     return filter_
+
 def create_collection():
 
     projection = {
@@ -188,7 +189,13 @@ def create_collection():
             'WIN_NAME': '$WIN_NAME'
         }
     }
-    save_collection = {'$out': 'joined_eu'}
+    # save_collection = {'$out': 'joined_eu'}
+    save_collection = {
+        "$merge": {
+            "into": "joined_eu",
+            "whenMatched": "keepExisting"
+        }
+    }
     pipeline = [projection,join_cpv_description,join_iso_description,iso_cpv_projection,iso_cpv_desc_proj,save_collection]
     eu.aggregate(pipeline)
 
