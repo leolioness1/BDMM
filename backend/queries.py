@@ -110,6 +110,88 @@ def cpv_not_null_filter():
             '$and': [{'cpv_div': {"$ne": "''"}}, {'cpv_div': {"$exists": True}}]
         }}
     return filter_
+def create_coillection():
+
+    projection = {
+        '$project':{
+            '_id': False,
+            'NUMBER_OFFERS': '$NUMBER_OFFERS',
+            'VALUE_EURO': '$VALE_EURO',
+            'cpv_div': '$cpv_div',
+            'B_EU_FUNDS': '$B_EU_FUNDS',
+            'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
+            'DT_DISPATCH': '$DT_DISPATCH',
+            'DT_AWARD': '$DT_AWARD',
+            'ISO_COUNTRY_CODE': '$ISO_COUNTRY_CODE',
+            'CAE_NAME': '$CAE_NAME',
+            'CAE_ADDRESS': '$CAE_ADDRESS',
+            'CAE_TOWN': '$CAE_TOWN',
+            'WIN_NAME': '$WIN_NAME'
+        }
+    }
+
+    join_cpv_description = {
+        '$lookup': {
+            'from': 'cpv',
+            'localField': 'cpv_div',
+            'foreignField': 'cpv_division',
+            'as': 'CPV_col'
+        }
+    }
+
+    join_iso_description = {
+        '$lookup': {
+            'from': 'iso_codes',
+            'localField': 'ISO_COUNTRY_CODE',
+            'foreignField': 'alpha-2',
+            'as': 'ISO_col'
+        }
+    }
+
+    iso_cpv_projection = {
+        '$project': {
+            '_id': False,
+            'ISO_col': {'$arrayElemAt': ['$ISO_col', 0]},
+            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
+            'NUMBER_OFFERS': '$NUMBER_OFFERS',
+            'VALUE_EURO': '$VALE_EURO',
+            'cpv_div': '$cpv_div',
+            'B_EU_FUNDS': '$B_EU_FUNDS',
+            'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
+            'DT_DISPATCH': '$DT_DISPATCH',
+            'DT_AWARD': '$DT_AWARD',
+            'ISO_COUNTRY_CODE': '$ISO_COUNTRY_CODE',
+            'CAE_NAME': '$CAE_NAME',
+            'CAE_ADDRESS': '$CAE_ADDRESS',
+            'CAE_TOWN': '$CAE_TOWN',
+            'WIN_NAME': '$WIN_NAME'
+        }
+    }
+
+    iso_cpv_desc_proj = {
+        '$project': {
+            '_id': False,
+            'country_ISO-3': '$ISO_col.alpha-3',
+            'country_name': '$ISO_col.name',
+            'cpv_desc': '$CPV_col.cpv_division_description',
+            'NUMBER_OFFERS': '$NUMBER_OFFERS',
+            'VALUE_EURO': '$VALE_EURO',
+            'cpv_div': '$cpv_div',
+            'B_EU_FUNDS': '$B_EU_FUNDS',
+            'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
+            'DT_DISPATCH': '$DT_DISPATCH',
+            'DT_AWARD': '$DT_AWARD',
+            'ISO_COUNTRY_CODE': '$ISO_COUNTRY_CODE',
+            'CAE_NAME': '$CAE_NAME',
+            'CAE_ADDRESS': '$CAE_ADDRESS',
+            'CAE_TOWN': '$CAE_TOWN',
+            'WIN_NAME': '$WIN_NAME'
+        }
+    }
+    save_collection = {'$out': 'joined_eu'}
+    pipeline = [{projection,join_cpv_description,join_iso_description,iso_cpv_projection,iso_cpv_desc_proj,save_collection}]
+    eu.aggregate(pipeline)
+
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
     Returns five metrics, described below
@@ -236,7 +318,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         '_id': {
             'cpv': '$cpv_div',
         },
-        'average_val': {'$avg': '$VALUE_EURO'}
+        'average_val': {'$avg': '$VALUE_EURO'},
     }
     }
 
@@ -252,7 +334,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         '$project': {
             '_id': False,
             'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
-            'average': '$average_val'
+            'average': '$average_val',
         }
     }
 
@@ -260,7 +342,7 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
         '$project': {
             '_id': False,
             'cpv': '$CPV_col.cpv_division_description',
-            'avg': '$average'
+            'avg': '$average',
         }
     }
 
@@ -269,13 +351,14 @@ def ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries):
             'avg': -1
         }
     }
-    cpv_limit = {
-        '$limit': 5
-    }
+#    cpv_limit = {
+#        '$limit': 5
+#    }
+    save_collection = {'$out': 'CPV_collection'}
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort, cpv_limit]
-
-    list_documents = list(eu.aggregate(pipeline))
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection, cpv_desc_proj, cpv_sort,save_collection]
+    eu.aggregate(pipeline)
+    list_documents = list(db.CPV_collection.find({},{'_id':0}).limit(5))
 
     return list_documents
 
@@ -291,7 +374,7 @@ def ex4_cpv_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     Where:
     value_1 = CPV Division description, (string) (located in cpv collection as 'cpv_division_description')
     value_2 = average 'VALUE_EURO' of each CPV Division, (float)
-    """
+
     count_cpv = {'$group': {
         '_id': {
             'cpv': '$cpv_div',
@@ -332,10 +415,9 @@ def ex4_cpv_bar_2(bot_year=2008, top_year=2020, country_list=countries):
         '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), count_cpv, join_cpv_description, cpv_projection,
-                cpv_desc_proj, cpv_sort, cpv_limit]
-
-    list_documents = list(eu.aggregate(pipeline))
+    pipeline = [year_country_filter(bot_year, top_year, country_list), cpv_sort, cpv_limit]
+"""
+    list_documents = list(db.CPV_collection.find({},{'_id':0}).sort('avg',1).limit(5))
 
     return list_documents
 
@@ -852,13 +934,13 @@ def ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries):
             'avg': -1
         }
     }
-    country_limit = {
-        '$limit': 5
-    }
-
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_country, join_country_name,country_projection, country_name_proj, country_sort, country_limit]
-
-    list_documents = list(eu.aggregate(pipeline))
+#    country_limit = {
+#        '$limit': 5
+#    }
+    save_collection = {'$out': 'Country_collection'}
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_country, join_country_name,country_projection, country_name_proj, country_sort, save_collection]
+    eu.aggregate(pipeline)
+    list_documents = list(db.Country_collection.find({},{'_id':0}).limit(5))
 
     return list_documents
 
@@ -875,7 +957,6 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     Where:
     value_1 = Country ('ISO_COUNTRY_CODE') name, (string)
     value_2 = average 'VALUE_EURO' of each country ('ISO_COUNTRY_CODE') name, (float)
-    """
 
     average_country = {'$group': {'_id': {'country': '$ISO_COUNTRY_CODE'},
                                   'average_val': {'$avg': '$VALUE_EURO'}
@@ -915,8 +996,8 @@ def ex13_country_bar_2(bot_year=2008, top_year=2020, country_list=countries):
 
     pipeline = [year_country_filter(bot_year, top_year, country_list), average_country, join_country_name,
                 country_projection, country_name_proj, country_sort, country_limit]
-
-    list_documents = list(eu.aggregate(pipeline))
+"""
+    list_documents = list(db.Country_collection.find({},{'_id':0}).sort('avg',1).limit(5))
 
     return list_documents
 
