@@ -5,6 +5,7 @@ from backend.DB import eu
 from backend.DB import db
 
 ########################################################################################################################
+### the location mode was changed to ISO-3
 #changed 'UK' to 'GB' to meet the changes below
 countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'GB', 'SI', 'LT',
              'ES', 'FR', 'IE', 'SE', 'NL', 'PT', 'PL', 'DK', 'MK', 'DE', 'IT',
