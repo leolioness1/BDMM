@@ -5,7 +5,7 @@ from backend.DB import eu
 from backend.DB import db
 
 ########################################################################################################################
-### the location mode was changed to ISO-3
+
 #changed 'UK' to 'GB' to meet the changes below
 countries = ['NO', 'HR', 'HU', 'CH', 'CZ', 'RO', 'LV', 'GR', 'GB', 'SI', 'LT',
              'ES', 'FR', 'IE', 'SE', 'NL', 'PT', 'PL', 'DK', 'MK', 'DE', 'IT',
@@ -498,6 +498,7 @@ def ex6_cpv_bar_4(bot_year=2008, top_year=2020, country_list=countries):
 
     return list_documents
 
+### !!! the location mode was changed to ISO-3 (alpha-3)
 
 def ex7_cpv_map(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -1130,16 +1131,15 @@ def ex16_business_bar_1(bot_year=2008, top_year=2020, country_list=countries):
             'avg': -1
         }
     }
-#    bus_limit = {
-#        '$limit': 5
-#    }
-    save_colection = {
-        '$out': 'BUS_collection'
+
+    bus_limit = {
+        '$limit': 5
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_bus, bus_name_proj, bus_sort, save_colection]
-    eu.aggregate(pipeline)
-    list_documents = list(db.BUS_collection.find({},{'_id':0}).limit(5))
+
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_bus, bus_name_proj, bus_sort, bus_limit]
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 
@@ -1153,10 +1153,14 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     Where:
     value_1 = company ('CAE_NAME') name, (string)
     value_2 = average 'VALUE_EURO' of each company ('CAE_NAME'), (float)
-    average_bus = {'$group': {'_id': {'bus': '$CAE_NAME'},
-                              'average': {'$avg': '$VALUE_EURO'}
-                              }
-                   }
+    """
+    average_bus = {
+        '$group': {'_id': {
+            'bus': '$CAE_NAME'},
+            'average': {'$avg': '$VALUE_EURO'}
+        }
+    }
+
     bus_name_proj = {
         '$project': {
             '_id': False,
@@ -1164,17 +1168,20 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
             'avg': '$average'
         }
     }
+
     bus_sort = {
         '$sort': {
             'avg': 1
         }
     }
-#    bus_limit = {
-#        '$limit': 5
+
+    bus_limit = {
+        '$limit': 5
+    }
+
     pipeline = [year_country_filter(bot_year, top_year, country_list), value_not_null_filter(), average_bus, bus_name_proj, bus_sort, bus_limit]
-    eu.aggregate(pipeline)
-    """
-    list_documents = list(db.BUS_collection.find({},{'_id':0}).sort('avg', 1).limit(5))
+
+    list_documents = list(eu.aggregate(pipeline))
 
     return list_documents
 

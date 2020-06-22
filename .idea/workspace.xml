@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="6c79d76c-f0a0-402e-bacb-1bac5ce38cfb" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/queries.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/queries.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -125,7 +126,14 @@
       <option name="project" value="LOCAL" />
       <updated>1592864046135</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="last changes">
+      <created>1592864972362</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1592864972362</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -144,7 +152,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="test git commit" />
     <MESSAGE value="19 fixed" />
-    <option name="LAST_COMMIT_MESSAGE" value="19 fixed" />
+    <MESSAGE value="last changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="last changes" />
   </component>
   <component name="WindowStateProjectService">
     <state width="1515" height="530" key="GridCell.Tab.0.bottom" timestamp="1591565851412">
