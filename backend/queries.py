@@ -46,7 +46,7 @@ def year_country_filter(bot_year, top_year,country_list):
             'VALUE_EURO': {'$lt': 100000000}
         }}
     return filter_
-
+#this function filters out empty or non existent VALUE_EURO for the VALUE_EURO questions
 def value_not_null_filter():
     filter_ = {
         '$match': {
@@ -78,6 +78,7 @@ list(eu.find({
 ).limit(5))
 
 #[] meaning it worked
+
 #in order to avoid repeating the logic to correct the UK to GB country codes to all of the following queries, we do it in the function below:
 def correct_country_codes():
     #update "UK" to "GB" in the "contracts" collection so it matches the "iso_codes" collection
@@ -92,6 +93,7 @@ def correct_country_codes():
 #correct_country_codes()
 #check it worked
 eu.distinct('ISO_COUNTRY_CODE')
+
 #insert a new field in the collections just for the CPV division which is going to be used in many queries
 def perform_CPV_division():
     eu.update_many(
@@ -104,6 +106,7 @@ def perform_CPV_division():
 #run the update once (why it's commented out)
 #perform_CPV_division()
 eu.distinct('cpv_div')
+#this function filters out empty or non existent CPV divisions for the CPV questions
 def cpv_not_null_filter():
     filter_ = {
         '$match': {
@@ -116,6 +119,7 @@ def create_collection():
     projection = {
         '$project':{
             '_id': False,
+            'YEAR':'$YEAR',
             'NUMBER_OFFERS': '$NUMBER_OFFERS',
             'VALUE_EURO': '$VALE_EURO',
             'cpv_div': '$cpv_div',
@@ -152,6 +156,7 @@ def create_collection():
     iso_cpv_projection = {
         '$project': {
             '_id': False,
+            'YEAR': '$YEAR',
             'ISO_col': {'$arrayElemAt': ['$ISO_col', 0]},
             'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
             'NUMBER_OFFERS': '$NUMBER_OFFERS',
@@ -172,6 +177,7 @@ def create_collection():
     iso_cpv_desc_proj = {
         '$project': {
             '_id': False,
+            'YEAR': '$YEAR',
             'country_ISO-3': '$ISO_col.alpha-3',
             'country_name': '$ISO_col.name',
             'cpv_desc': '$CPV_col.cpv_division_description',
@@ -192,8 +198,9 @@ def create_collection():
     # save_collection = {'$out': 'joined_eu'}
     save_collection = {
         "$merge": {
-            "into": "joined_eu",
-            "whenMatched": "keepExisting"
+            "into": "joined_eu_year",
+            "on": "salesDate",
+            "whenMatched": "merge" #keepExisting
         }
     }
     pipeline = [projection,join_cpv_description,join_iso_description,iso_cpv_projection,iso_cpv_desc_proj,save_collection]
