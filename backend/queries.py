@@ -72,10 +72,10 @@ def correct_CPV_codes():
 #this was commented as it only needs to be run once to update the db
 #correct_CPV_codes()
 #check if it worked
-list(eu.find({
-    "CPV": { "$exists": True },
-    "$expr": { "$lt": [ {"$strLenCP": "$CPV"}, 8]}}, {'CPV': 1}
-).limit(5))
+# list(eu.find({
+#     "CPV": { "$exists": True },
+#     "$expr": { "$lt": [ {"$strLenCP": "$CPV"}, 8]}}, {'CPV': 1}
+# ).limit(5))
 
 #[] meaning it worked
 
@@ -92,7 +92,7 @@ def correct_country_codes():
 #run the update once (why it's commented out)
 #correct_country_codes()
 #check it worked
-eu.distinct('ISO_COUNTRY_CODE')
+# eu.distinct('ISO_COUNTRY_CODE')
 
 #insert a new field in the collections just for the CPV division which is going to be used in many queries
 def perform_CPV_division():
@@ -105,7 +105,7 @@ def perform_CPV_division():
     )
 #run the update once (why it's commented out)
 #perform_CPV_division()
-eu.distinct('cpv_div')
+# eu.distinct('cpv_div')
 #this function filters out empty or non existent CPV divisions for the CPV questions
 def cpv_not_null_filter():
     filter_ = {
@@ -114,97 +114,6 @@ def cpv_not_null_filter():
         }}
     return filter_
 
-def create_collection():
-
-    projection = {
-        '$project':{
-            '_id': False,
-            'YEAR':'$YEAR',
-            'NUMBER_OFFERS': '$NUMBER_OFFERS',
-            'VALUE_EURO': '$VALE_EURO',
-            'cpv_div': '$cpv_div',
-            'B_EU_FUNDS': '$B_EU_FUNDS',
-            'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
-            'DT_DISPATCH': '$DT_DISPATCH',
-            'DT_AWARD': '$DT_AWARD',
-            'ISO_COUNTRY_CODE': '$ISO_COUNTRY_CODE',
-            'CAE_NAME': '$CAE_NAME',
-            'CAE_ADDRESS': '$CAE_ADDRESS',
-            'CAE_TOWN': '$CAE_TOWN',
-            'WIN_NAME': '$WIN_NAME'
-        }
-    }
-
-    join_cpv_description = {
-        '$lookup': {
-            'from': 'cpv',
-            'localField': 'cpv_div',
-            'foreignField': 'cpv_division',
-            'as': 'CPV_col'
-        }
-    }
-
-    join_iso_description = {
-        '$lookup': {
-            'from': 'iso_codes',
-            'localField': 'ISO_COUNTRY_CODE',
-            'foreignField': 'alpha-2',
-            'as': 'ISO_col'
-        }
-    }
-
-    iso_cpv_projection = {
-        '$project': {
-            '_id': False,
-            'YEAR': '$YEAR',
-            'ISO_col': {'$arrayElemAt': ['$ISO_col', 0]},
-            'CPV_col': {'$arrayElemAt': ['$CPV_col', 0]},
-            'NUMBER_OFFERS': '$NUMBER_OFFERS',
-            'VALUE_EURO': '$VALE_EURO',
-            'cpv_div': '$cpv_div',
-            'B_EU_FUNDS': '$B_EU_FUNDS',
-            'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
-            'DT_DISPATCH': '$DT_DISPATCH',
-            'DT_AWARD': '$DT_AWARD',
-            'ISO_COUNTRY_CODE': '$ISO_COUNTRY_CODE',
-            'CAE_NAME': '$CAE_NAME',
-            'CAE_ADDRESS': '$CAE_ADDRESS',
-            'CAE_TOWN': '$CAE_TOWN',
-            'WIN_NAME': '$WIN_NAME'
-        }
-    }
-
-    iso_cpv_desc_proj = {
-        '$project': {
-            '_id': False,
-            'YEAR': '$YEAR',
-            'country_ISO-3': '$ISO_col.alpha-3',
-            'country_name': '$ISO_col.name',
-            'cpv_desc': '$CPV_col.cpv_division_description',
-            'NUMBER_OFFERS': '$NUMBER_OFFERS',
-            'VALUE_EURO': '$VALE_EURO',
-            'cpv_div': '$cpv_div',
-            'B_EU_FUNDS': '$B_EU_FUNDS',
-            'AWARD_VALUE_EURO': '$AWARD_VALUE_EURO',
-            'DT_DISPATCH': '$DT_DISPATCH',
-            'DT_AWARD': '$DT_AWARD',
-            'ISO_COUNTRY_CODE': '$ISO_COUNTRY_CODE',
-            'CAE_NAME': '$CAE_NAME',
-            'CAE_ADDRESS': '$CAE_ADDRESS',
-            'CAE_TOWN': '$CAE_TOWN',
-            'WIN_NAME': '$WIN_NAME'
-        }
-    }
-    # save_collection = {'$out': 'joined_eu'}
-    save_collection = {
-        "$merge": {
-            "into": "joined_eu_year",
-            "on": "salesDate",
-            "whenMatched": "merge" #keepExisting
-        }
-    }
-    pipeline = [projection,join_cpv_description,join_iso_description,iso_cpv_projection,iso_cpv_desc_proj,save_collection]
-    eu.aggregate(pipeline)
 
 def ex1_cpv_box(bot_year=2008, top_year=2020, country_list=countries):
     """
@@ -1162,13 +1071,16 @@ def ex16_business_bar_1(bot_year=2008, top_year=2020, country_list=countries):
             'avg': -1
         }
     }
-    bus_limit = {
-        '$limit': 5
+#    bus_limit = {
+#        '$limit': 5
+#    }
+    save_colection = {
+        '$out': 'BUS_collection'
     }
 
-    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_bus, bus_name_proj, bus_sort, bus_limit]
-
-    list_documents = list(eu.aggregate(pipeline))
+    pipeline = [year_country_filter(bot_year, top_year, country_list),value_not_null_filter(), average_bus, bus_name_proj, bus_sort, save_colection]
+    eu.aggregate(pipeline)
+    list_documents = list(db.BUS_collection.find({},{'_id':0}).limit(5))
 
     return list_documents
 
@@ -1186,7 +1098,7 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
     Where:
     value_1 = company ('CAE_NAME') name, (string)
     value_2 = average 'VALUE_EURO' of each company ('CAE_NAME'), (float)
-    """
+
     average_bus = {'$group': {'_id': {'bus': '$CAE_NAME'},
                               'average': {'$avg': '$VALUE_EURO'}
                               }
@@ -1203,13 +1115,16 @@ def ex17_business_bar_2(bot_year=2008, top_year=2020, country_list=countries):
             'avg': 1
         }
     }
-    bus_limit = {
-        '$limit': 5
-    }
+
+#    bus_limit = {
+#        '$limit': 5
+
+
 
     pipeline = [year_country_filter(bot_year, top_year, country_list), value_not_null_filter(), average_bus, bus_name_proj, bus_sort, bus_limit]
-
-    list_documents = list(eu.aggregate(pipeline))
+    eu.aggregate(pipeline)
+    """
+    list_documents = list(db.BUS_collection.find({},{'_id':0}).sort('avg', 1).limit(5))
 
     return list_documents
 
@@ -1399,6 +1314,9 @@ def insert_operation(document):
     '''
     inserted_ids = eu.insert_many(document).inserted_ids
 
+    ex3_cpv_bar_1(bot_year=2008, top_year=2020, country_list=countries)
+    ex12_country_bar_1(bot_year=2008, top_year=2020, country_list=countries)
+    ex16_business_bar_1(bot_year=2008, top_year=2020, country_list=countries)
 
     return inserted_ids
 
